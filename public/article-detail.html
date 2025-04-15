@@ -1,0 +1,241 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章详情</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .article-content {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .article-title {
+            font-size: 24px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .article-meta {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 20px;
+        }
+        .article-body {
+            line-height: 1.6;
+            white-space: pre-wrap;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background-color: #1890ff;
+            color: white;
+        }
+        .btn-danger {
+            background-color: #ff4d4f;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+        .edit-form {
+            display: none;
+            margin-top: 20px;
+        }
+        .edit-form textarea {
+            width: 100%;
+            min-height: 200px;
+            padding: 10px;
+            margin-bottom: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            resize: vertical;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>文章详情</h1>
+            <div>
+                <a href="articles.html" class="btn">返回列表</a>
+                <button onclick="toggleEdit()" class="btn btn-primary">编辑文章</button>
+                <button onclick="deleteArticle()" class="btn btn-danger">删除文章</button>
+            </div>
+        </div>
+        <div class="article-content">
+            <div id="viewMode">
+                <h2 class="article-title" id="articleTitle"></h2>
+                <div class="article-meta" id="articleMeta"></div>
+                <div class="article-body" id="articleBody"></div>
+            </div>
+            <div id="editMode" class="edit-form">
+                <input type="text" id="editTitle" class="article-title" style="width: 100%; margin-bottom: 10px;">
+                <textarea id="editContent"></textarea>
+                <button onclick="saveArticle()" class="btn btn-primary">保存</button>
+                <button onclick="cancelEdit()" class="btn">取消</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentArticle = null;
+
+        // 检查登录状态
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+        }
+
+        // 获取文章ID
+        function getArticleId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('id');
+        }
+
+        // 加载文章详情
+        async function loadArticle() {
+            const articleId = getArticleId();
+            if (!articleId) {
+                alert('文章ID无效');
+                window.location.href = 'articles.html';
+                return;
+            }
+
+            try {
+                const response = await fetch(`http://localhost:3000/api/articles/${articleId}`);
+                if (!response.ok) {
+                    throw new Error('文章不存在');
+                }
+                currentArticle = await response.json();
+                
+                document.getElementById('articleTitle').textContent = currentArticle.title;
+                document.getElementById('articleMeta').innerHTML = `
+                    作者: ${currentArticle.username} | 
+                    创建时间: ${new Date(currentArticle.created_at).toLocaleString()} |
+                    更新时间: ${new Date(currentArticle.updated_at).toLocaleString()}
+                `;
+                document.getElementById('articleBody').textContent = currentArticle.content;
+            } catch (error) {
+                console.error('加载文章错误:', error);
+                alert('加载文章失败');
+                window.location.href = 'articles.html';
+            }
+        }
+
+        // 切换编辑模式
+        function toggleEdit() {
+            const viewMode = document.getElementById('viewMode');
+            const editMode = document.getElementById('editMode');
+            const editTitle = document.getElementById('editTitle');
+            const editContent = document.getElementById('editContent');
+
+            if (viewMode.style.display !== 'none') {
+                viewMode.style.display = 'none';
+                editMode.style.display = 'block';
+                editTitle.value = currentArticle.title;
+                editContent.value = currentArticle.content;
+            } else {
+                viewMode.style.display = 'block';
+                editMode.style.display = 'none';
+            }
+        }
+
+        // 取消编辑
+        function cancelEdit() {
+            toggleEdit();
+        }
+
+        // 保存文章
+        async function saveArticle() {
+            const articleId = getArticleId();
+            const title = document.getElementById('editTitle').value;
+            const content = document.getElementById('editContent').value;
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`http://localhost:3000/api/articles/${articleId}`, {
+                    method: 'PUT',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${token}`
+                    },
+                    body: JSON.stringify({ title, content })
+                });
+
+                if (response.ok) {
+                    alert('文章更新成功');
+                    loadArticle();
+                    toggleEdit();
+                } else {
+                    const data = await response.json();
+                    alert(data.message || '更新失败');
+                }
+            } catch (error) {
+                console.error('更新文章错误:', error);
+                alert('更新失败，请稍后重试');
+            }
+        }
+
+        // 删除文章
+        async function deleteArticle() {
+            if (!confirm('确定要删除这篇文章吗？')) {
+                return;
+            }
+
+            const articleId = getArticleId();
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`http://localhost:3000/api/articles/${articleId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    alert('文章删除成功');
+                    window.location.href = 'articles.html';
+                } else {
+                    const data = await response.json();
+                    alert(data.message || '删除失败');
+                }
+            } catch (error) {
+                console.error('删除文章错误:', error);
+                alert('删除失败，请稍后重试');
+            }
+        }
+
+        // 页面加载时执行
+        window.onload = () => {
+            checkAuth();
+            loadArticle();
+        };
+    </script>
+</body>
+</html> 

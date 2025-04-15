@@ -18,4 +18,8 @@ npm-debug.log*
 
 # 系统文件
 .DS_Store
-Thumbs.db 
+Thumbs.db
+
+# 数据库备份
+*.sql
+*.bak 

@@ -53,7 +53,7 @@ DB_USER=your_database_user
 DB_PASSWORD=your_database_password
 DB_NAME=your_database_name
 JWT_SECRET=your_jwt_secret
-PORT=3001
+PORT=3000
 ```
 
 4. 数据库设置

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章列表</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f2f5;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+        .article-list {
+            background-color: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+        }
+        .article-item {
+            padding: 15px;
+            border-bottom: 1px solid #eee;
+        }
+        .article-item:last-child {
+            border-bottom: none;
+        }
+        .article-title {
+            font-size: 18px;
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .article-meta {
+            color: #666;
+            font-size: 14px;
+        }
+        .btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            text-decoration: none;
+            display: inline-block;
+        }
+        .btn-primary {
+            background-color: #1890ff;
+            color: white;
+        }
+        .btn-danger {
+            background-color: #ff4d4f;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>文章列表</h1>
+            <div>
+                <a href="dashboard.html" class="btn">返回仪表板</a>
+                <a href="create-article.html" class="btn btn-primary">新建文章</a>
+            </div>
+        </div>
+        <div class="article-list" id="articleList">
+            <!-- 文章列表将通过JavaScript动态加载 -->
+        </div>
+    </div>
+
+    <script>
+        // 检查登录状态
+        function checkAuth() {
+            const token = localStorage.getItem('token');
+            if (!token) {
+                window.location.href = 'login.html';
+                return;
+            }
+        }
+
+        // 加载文章列表
+        async function loadArticles() {
+            try {
+                const response = await fetch('http://localhost:3000/api/articles');
+                const articles = await response.json();
+                
+                const articleList = document.getElementById('articleList');
+                articleList.innerHTML = articles.map(article => `
+                    <div class="article-item">
+                        <div class="article-title">${article.title}</div>
+                        <div class="article-meta">
+                            作者: ${article.username} | 
+                            创建时间: ${new Date(article.created_at).toLocaleString()}
+                        </div>
+                        <div style="margin-top: 10px;">
+                            <a href="article-detail.html?id=${article.id}" class="btn btn-primary">查看</a>
+                            <button onclick="deleteArticle(${article.id})" class="btn btn-danger">删除</button>
+                        </div>
+                    </div>
+                `).join('');
+            } catch (error) {
+                console.error('加载文章列表错误:', error);
+            }
+        }
+
+        // 删除文章
+        async function deleteArticle(articleId) {
+            if (!confirm('确定要删除这篇文章吗？')) {
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`http://localhost:3000/api/articles/${articleId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+
+                if (response.ok) {
+                    alert('文章删除成功');
+                    loadArticles();
+                } else {
+                    const data = await response.json();
+                    alert(data.message || '删除失败');
+                }
+            } catch (error) {
+                console.error('删除文章错误:', error);
+                alert('删除失败，请稍后重试');
+            }
+        }
+
+        // 页面加载时执行
+        window.onload = () => {
+            checkAuth();
+            loadArticles();
+        };
+    </script>
+</body>
+</html> 

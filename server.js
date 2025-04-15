@@ -152,7 +152,136 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
-const PORT = process.env.PORT || 3001;
+// 文章路由
+app.post('/api/articles', async (req, res) => {
+    const { title, content } = req.body;
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ message: '未授权' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const userId = decoded.userId;
+
+        const [result] = await promisePool.query(
+            'INSERT INTO articles (title, content, user_id) VALUES (?, ?, ?)',
+            [title, content, userId]
+        );
+
+        res.status(201).json({
+            message: '文章创建成功',
+            articleId: result.insertId
+        });
+    } catch (error) {
+        console.error('创建文章错误:', error);
+        res.status(500).json({ message: '服务器错误' });
+    }
+});
+
+app.get('/api/articles', async (req, res) => {
+    try {
+        const [articles] = await promisePool.query(
+            'SELECT a.*, u.username FROM articles a JOIN users u ON a.user_id = u.id ORDER BY a.created_at DESC'
+        );
+        res.json(articles);
+    } catch (error) {
+        console.error('获取文章列表错误:', error);
+        res.status(500).json({ message: '服务器错误' });
+    }
+});
+
+app.get('/api/articles/:id', async (req, res) => {
+    const articleId = req.params.id;
+
+    try {
+        const [articles] = await promisePool.query(
+            'SELECT a.*, u.username FROM articles a JOIN users u ON a.user_id = u.id WHERE a.id = ?',
+            [articleId]
+        );
+
+        if (articles.length === 0) {
+            return res.status(404).json({ message: '文章不存在' });
+        }
+
+        res.json(articles[0]);
+    } catch (error) {
+        console.error('获取文章详情错误:', error);
+        res.status(500).json({ message: '服务器错误' });
+    }
+});
+
+app.put('/api/articles/:id', async (req, res) => {
+    const articleId = req.params.id;
+    const { title, content } = req.body;
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ message: '未授权' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const userId = decoded.userId;
+
+        // 检查文章是否存在且属于当前用户
+        const [articles] = await promisePool.query(
+            'SELECT * FROM articles WHERE id = ? AND user_id = ?',
+            [articleId, userId]
+        );
+
+        if (articles.length === 0) {
+            return res.status(404).json({ message: '文章不存在或无权修改' });
+        }
+
+        await promisePool.query(
+            'UPDATE articles SET title = ?, content = ? WHERE id = ? AND user_id = ?',
+            [title, content, articleId, userId]
+        );
+
+        res.json({ message: '文章更新成功' });
+    } catch (error) {
+        console.error('更新文章错误:', error);
+        res.status(500).json({ message: '服务器错误' });
+    }
+});
+
+app.delete('/api/articles/:id', async (req, res) => {
+    const articleId = req.params.id;
+    const token = req.headers.authorization?.split(' ')[1];
+
+    if (!token) {
+        return res.status(401).json({ message: '未授权' });
+    }
+
+    try {
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+        const userId = decoded.userId;
+
+        // 检查文章是否存在且属于当前用户
+        const [articles] = await promisePool.query(
+            'SELECT * FROM articles WHERE id = ? AND user_id = ?',
+            [articleId, userId]
+        );
+
+        if (articles.length === 0) {
+            return res.status(404).json({ message: '文章不存在或无权删除' });
+        }
+
+        await promisePool.query(
+            'DELETE FROM articles WHERE id = ? AND user_id = ?',
+            [articleId, userId]
+        );
+
+        res.json({ message: '文章删除成功' });
+    } catch (error) {
+        console.error('删除文章错误:', error);
+        res.status(500).json({ message: '服务器错误' });
+    }
+});
+
+const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
     console.log(`服务器运行在端口 ${PORT}`);
 }); 
