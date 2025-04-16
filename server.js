@@ -30,7 +30,7 @@ app.use(helmet({
 // 安全中间件
 app.use(cors({
     origin: process.env.NODE_ENV === 'production' 
-        ? ['https://yourdomain.com']  // 生产环境只允许特定域名
+        ? ['https://badivy.cn']  // 生产环境只允许特定域名
         : '*',  // 开发环境允许所有域名
     credentials: true
 }));
@@ -62,7 +62,9 @@ const pool = mysql.createPool({
     connectionLimit: 10,
     queueLimit: 0,
     debug: true,  // 启用调试
-    trace: true   // 启用跟踪
+    trace: true,   // 启用跟踪
+    timezone: '+08:00',  // 设置时区为东八区
+    dateStrings: true    // 将日期作为字符串返回
 });
 
 // 将连接池转换为Promise形式
@@ -87,7 +89,7 @@ app.post('/api/register', async (req, res) => {
         
         // 检查用户名是否已存在
         const [existingUsers] = await promisePool.query(
-            'SELECT * FROM users WHERE username = ?',
+            'SELECT * FROM Users WHERE username = ?',
             [username]
         );
 
@@ -101,9 +103,10 @@ app.post('/api/register', async (req, res) => {
         console.log('密码加密完成');
 
         // 插入新用户
+        const now = new Date();
         await promisePool.query(
-            'INSERT INTO users (username, password) VALUES (?, ?)',
-            [username, hashedPassword]
+            'INSERT INTO Users (username, password, createdAt, updatedAt) VALUES (?, ?, ?, ?)',
+            [username, hashedPassword, now, now]
         );
         console.log('用户数据插入成功');
 
@@ -122,7 +125,7 @@ app.post('/api/login', async (req, res) => {
     try {
         // 查找用户
         const [users] = await promisePool.query(
-            'SELECT * FROM users WHERE username = ?',
+            'SELECT id, username, password, createdAt, updatedAt FROM Users WHERE username = ?',
             [username]
         );
 
@@ -141,7 +144,7 @@ app.post('/api/login', async (req, res) => {
         // 生成JWT令牌
         const token = jwt.sign(
             { userId: user.id, username: user.username },
-            process.env.JWT_SECRET,
+            process.env.JWT_SECRET || 'your-secret-key',
             { expiresIn: '24h' }
         );
 
@@ -165,9 +168,10 @@ app.post('/api/articles', async (req, res) => {
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const userId = decoded.userId;
 
+        const now = new Date();
         const [result] = await promisePool.query(
-            'INSERT INTO articles (title, content, user_id) VALUES (?, ?, ?)',
-            [title, content, userId]
+            'INSERT INTO Articles (title, content, userId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)',
+            [title, content, userId, now, now]
         );
 
         res.status(201).json({
@@ -180,12 +184,34 @@ app.post('/api/articles', async (req, res) => {
     }
 });
 
+// 格式化日期的辅助函数
+function formatDate(dateString) {
+    if (!dateString) return '未知时间';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '无效时间';
+    return date.toLocaleString('zh-CN', {
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+        hour: '2-digit',
+        minute: '2-digit',
+        second: '2-digit',
+        hour12: false
+    });
+}
+
 app.get('/api/articles', async (req, res) => {
     try {
         const [articles] = await promisePool.query(
-            'SELECT a.*, u.username FROM articles a JOIN users u ON a.user_id = u.id ORDER BY a.created_at DESC'
+            'SELECT a.*, u.username FROM Articles a JOIN Users u ON a.userId = u.id ORDER BY a.createdAt DESC'
         );
-        res.json(articles);
+        // 格式化日期
+        const formattedArticles = articles.map(article => ({
+            ...article,
+            createdAt: formatDate(article.createdAt),
+            updatedAt: formatDate(article.updatedAt)
+        }));
+        res.json(formattedArticles);
     } catch (error) {
         console.error('获取文章列表错误:', error);
         res.status(500).json({ message: '服务器错误' });
@@ -197,7 +223,7 @@ app.get('/api/articles/:id', async (req, res) => {
 
     try {
         const [articles] = await promisePool.query(
-            'SELECT a.*, u.username FROM articles a JOIN users u ON a.user_id = u.id WHERE a.id = ?',
+            'SELECT a.*, u.username FROM Articles a JOIN Users u ON a.userId = u.id WHERE a.id = ?',
             [articleId]
         );
 
@@ -205,7 +231,14 @@ app.get('/api/articles/:id', async (req, res) => {
             return res.status(404).json({ message: '文章不存在' });
         }
 
-        res.json(articles[0]);
+        // 格式化日期
+        const formattedArticle = {
+            ...articles[0],
+            createdAt: formatDate(articles[0].createdAt),
+            updatedAt: formatDate(articles[0].updatedAt)
+        };
+
+        res.json(formattedArticle);
     } catch (error) {
         console.error('获取文章详情错误:', error);
         res.status(500).json({ message: '服务器错误' });
@@ -227,7 +260,7 @@ app.put('/api/articles/:id', async (req, res) => {
 
         // 检查文章是否存在且属于当前用户
         const [articles] = await promisePool.query(
-            'SELECT * FROM articles WHERE id = ? AND user_id = ?',
+            'SELECT * FROM Articles WHERE id = ? AND userId = ?',
             [articleId, userId]
         );
 
@@ -236,8 +269,8 @@ app.put('/api/articles/:id', async (req, res) => {
         }
 
         await promisePool.query(
-            'UPDATE articles SET title = ?, content = ? WHERE id = ? AND user_id = ?',
-            [title, content, articleId, userId]
+            'UPDATE Articles SET title = ?, content = ?, updatedAt = ? WHERE id = ? AND userId = ?',
+            [title, content, new Date(), articleId, userId]
         );
 
         res.json({ message: '文章更新成功' });
@@ -261,7 +294,7 @@ app.delete('/api/articles/:id', async (req, res) => {
 
         // 检查文章是否存在且属于当前用户
         const [articles] = await promisePool.query(
-            'SELECT * FROM articles WHERE id = ? AND user_id = ?',
+            'SELECT * FROM Articles WHERE id = ? AND userId = ?',
             [articleId, userId]
         );
 
@@ -270,7 +303,7 @@ app.delete('/api/articles/:id', async (req, res) => {
         }
 
         await promisePool.query(
-            'DELETE FROM articles WHERE id = ? AND user_id = ?',
+            'DELETE FROM Articles WHERE id = ? AND userId = ?',
             [articleId, userId]
         );
 

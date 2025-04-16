@@ -137,8 +137,8 @@
                 document.getElementById('articleTitle').textContent = currentArticle.title;
                 document.getElementById('articleMeta').innerHTML = `
                     作者: ${currentArticle.username} | 
-                    创建时间: ${new Date(currentArticle.created_at).toLocaleString()} |
-                    更新时间: ${new Date(currentArticle.updated_at).toLocaleString()}
+                    创建时间: ${new Date(currentArticle.createdAt).toLocaleString()} |
+                    更新时间: ${new Date(currentArticle.updatedAt).toLocaleString()}
                 `;
                 document.getElementById('articleBody').textContent = currentArticle.content;
             } catch (error) {

@@ -1,0 +1,26 @@
+{
+  "development": {
+    "username": "remote_user",
+    "password": "ivy12345",
+    "database": "user_auth",
+    "host": "43.143.18.145",
+    "dialect": "mysql",
+    "timezone": "+08:00"
+  },
+  "test": {
+    "username": "remote_user",
+    "password": "ivy12345",
+    "database": "user_auth",
+    "host": "43.143.18.145",
+    "dialect": "mysql",
+    "timezone": "+08:00"
+  },
+  "production": {
+    "username": "remote_user",
+    "password": "ivy12345",
+    "database": "user_auth",
+    "host": "43.143.18.145",
+    "dialect": "mysql",
+    "timezone": "+08:00"
+  }
+}

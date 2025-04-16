@@ -1,39 +1,68 @@
-# 用户认证系统
+# 用户登录与文章管理系统
 
-一个基于Node.js和MySQL的用户登录注册系统，包含前端界面和后端API。
+## 项目简介
+这是一个基于 Node.js + Express + MySQL 的用户登录与文章管理系统，提供用户注册、登录、文章管理等功能。
 
-## 功能特点
-
-- 用户注册
-- 用户登录
-- JWT认证
-- 密码加密存储
-- 响应式界面
-- 安全防护措施
+## 功能特性
+- 用户注册与登录
+- JWT 身份认证
+- 文章管理（创建、查看、编辑、删除）
+- 响应式界面设计
+- 安全防护（密码加密、SQL注入防护等）
 
 ## 技术栈
+- 后端：Node.js + Express
+- 数据库：MySQL
+- 前端：HTML5 + CSS3 + JavaScript
+- 安全：JWT + bcrypt + helmet
 
-- 前端：
-  - HTML5
-  - CSS3
-  - JavaScript (ES6+)
-  
-- 后端：
-  - Node.js
-  - Express.js
-  - MySQL
-  - JWT认证
-  - bcrypt密码加密
+## 项目结构
+```
+project/
+├── public/                # 静态文件
+│   ├── login.html         # 登录/注册页面
+│   ├── articles.html      # 文章列表页面
+│   ├── article-detail.html # 文章详情页面
+│   └── create-article.html # 新建文章页面
+├── server.js              # 服务器入口文件
+├── .env                   # 环境变量配置
+└── README.md              # 项目说明文档
+```
 
-- 安全特性：
-  - Helmet安全头
-  - 速率限制
-  - CORS配置
-  - 环境变量配置
-  - 内容安全策略
+## 数据库设计
+### users 表
+- id: 主键
+- username: 用户名
+- password: 密码（加密存储）
+- created_at: 创建时间
+- updated_at: 更新时间
+
+### articles 表
+- id: 主键
+- title: 文章标题
+- content: 文章内容
+- user_id: 作者ID（外键关联users表）
+- created_at: 创建时间
+- updated_at: 更新时间
+
+## API 接口
+### 用户相关
+- POST /api/register - 用户注册
+- POST /api/login - 用户登录
+
+### 文章相关
+- GET /api/articles - 获取文章列表
+- GET /api/articles/:id - 获取文章详情
+- POST /api/articles - 创建新文章
+- PUT /api/articles/:id - 更新文章
+- DELETE /api/articles/:id - 删除文章
+
+## 环境要求
+- Node.js >= 14.0.0
+- MySQL >= 5.7
+- npm >= 6.0.0
 
 ## 安装步骤
-
 1. 克隆项目
 ```bash
 git clone [项目地址]
@@ -46,123 +75,72 @@ npm install
 ```
 
 3. 配置环境变量
-创建`.env`文件并配置以下变量：
-```env
-DB_HOST=your_database_host
-DB_USER=your_database_user
-DB_PASSWORD=your_database_password
-DB_NAME=your_database_name
+创建 .env 文件并配置以下内容：
+```
+DB_HOST=localhost
+DB_USER=your_username
+DB_PASSWORD=your_password
+DB_NAME=your_database
 JWT_SECRET=your_jwt_secret
 PORT=3000
 ```
 
-4. 数据库设置
+4. 创建数据库表
 ```sql
-CREATE DATABASE user_auth;
-USE user_auth;
-
+-- 创建用户表
 CREATE TABLE users (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    username VARCHAR(255) NOT NULL UNIQUE,
+    username VARCHAR(50) NOT NULL UNIQUE,
     password VARCHAR(255) NOT NULL,
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+);
+
+-- 创建文章表
+CREATE TABLE articles (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    title VARCHAR(255) NOT NULL,
+    content TEXT NOT NULL,
+    user_id INT NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
 );
 ```
 
 5. 启动服务器
 ```bash
-npm start
+node server.js
 ```
 
-## 项目结构
-
-```
-project/
-├── public/
-│   ├── login.html
-│   └── dashboard.html
-├── server.js
-├── package.json
-├── .env
-└── README.md
-```
-
-## API接口
-
-### 注册
-- 路径：`/api/register`
-- 方法：POST
-- 请求体：
-```json
-{
-    "username": "用户名",
-    "password": "密码"
-}
-```
-
-### 登录
-- 路径：`/api/login`
-- 方法：POST
-- 请求体：
-```json
-{
-    "username": "用户名",
-    "password": "密码"
-}
-```
+## 使用说明
+1. 访问 http://localhost:3000 进入登录页面
+2. 注册新用户或使用已有账号登录
+3. 登录成功后进入文章列表页面
+4. 可以创建、查看、编辑和删除文章
 
 ## 安全特性
+- 密码使用 bcrypt 加密存储
+- 使用 JWT 进行身份认证
+- 使用 helmet 增强安全性
+- 防止 SQL 注入
+- 请求频率限制
 
-1. 密码安全
-   - 使用bcrypt进行密码加密
-   - 密码强度验证
+## 版本历史
+### v1.0.0 (2025-04-14)
+- 初始版本发布
+- 实现用户注册和登录功能
+- 添加基础安全防护
 
-2. 认证安全
-   - JWT令牌认证
-   - 令牌过期机制
+### v1.1.0 (2025-04-15)
+- 新增文章管理功能
+  - 文章列表展示
+  - 文章详情查看
+  - 文章创建
+  - 文章编辑
+  - 文章删除
+- 优化用户界面
+- 统一使用3000端口
+- 完善错误处理机制
 
-3. 请求安全
-   - 速率限制
-   - CORS配置
-   - 请求体大小限制
 
-4. 服务器安全
-   - Helmet安全头
-   - 内容安全策略
-   - 环境变量配置
-
-## 开发说明
-
-1. 开发环境
-```bash
-npm run dev
-```
-
-2. 生产环境
-```bash
-npm start
-```
-
-## 注意事项
-
-1. 确保MySQL服务已启动
-2. 检查环境变量配置
-3. 确保端口未被占用
-4. 生产环境需要配置HTTPS
-5. 定期备份数据库
-
-## 贡献指南
-
-1. Fork项目
-2. 创建特性分支
-3. 提交更改
-4. 推送到分支
-5. 创建Pull Request
-
-## 许可证
-
-MIT License
-
-## 联系方式
-
-如有问题，请联系项目维护者。 
