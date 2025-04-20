@@ -16,11 +16,12 @@
         .header {
             background-color: #fff;
             box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-            padding: 1rem 2rem;
+            padding: 1rem;
             position: fixed;
             width: 100%;
             top: 0;
             z-index: 1000;
+            box-sizing: border-box;
         }
 
         .nav {
@@ -29,13 +30,62 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            padding: 0 1rem;
         }
 
         .logo {
-            font-size: 1.5rem;
+            font-size: 1.2rem;
             font-weight: bold;
             color: #1890ff;
             text-decoration: none;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            max-width: 200px;
+        }
+
+        .back-btn {
+            padding: 8px 16px;
+            background-color: #1890ff;
+            color: white;
+            border-radius: 4px;
+            text-decoration: none;
+            white-space: nowrap;
+            font-size: 0.9rem;
+        }
+
+        .back-btn:hover {
+            background-color: #40a9ff;
+        }
+
+        @media (max-width: 768px) {
+            .header {
+                padding: 0.5rem;
+            }
+
+            .nav {
+                padding: 0 0.5rem;
+            }
+
+            .logo {
+                font-size: 1rem;
+                max-width: 150px;
+            }
+
+            .back-btn {
+                padding: 6px 12px;
+                font-size: 0.8rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .logo {
+                max-width: 120px;
+            }
+
+            .back-btn {
+                padding: 4px 8px;
+            }
         }
 
         .main-content {
@@ -123,6 +173,8 @@
             border-radius: 8px;
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             min-height: calc(100vh - 160px);
+            box-sizing: border-box;
+            overflow-x: hidden;
         }
 
         .article-title {
@@ -145,10 +197,16 @@
             font-size: 1.1rem;
             line-height: 1.8;
             color: #1f2329;
+            max-width: 100%;
+            overflow-wrap: break-word;
+            word-wrap: break-word;
+            word-break: break-word;
         }
 
         .article-content p {
             margin-bottom: 1.2em;
+            max-width: 100%;
+            overflow-wrap: break-word;
         }
 
         .article-content h1, 
@@ -168,6 +226,8 @@
             padding: 1rem;
             border-radius: 4px;
             overflow-x: auto;
+            max-width: 100%;
+            box-sizing: border-box;
         }
 
         .article-content code {
@@ -176,11 +236,21 @@
             padding: 0.2em 0.4em;
             border-radius: 3px;
             font-size: 0.9em;
+            white-space: pre-wrap;
+            word-break: break-all;
         }
 
         .article-content img {
             max-width: 100%;
+            height: auto;
             border-radius: 4px;
+            margin: 1rem 0;
+        }
+
+        .article-content table {
+            max-width: 100%;
+            overflow-x: auto;
+            display: block;
             margin: 1rem 0;
         }
 
@@ -314,13 +384,81 @@
         .footer .icp a:hover {
             color: #1890ff;
         }
+
+        /* 错误提示样式 */
+        .error-message {
+            text-align: center;
+            padding: 2rem;
+            background: #fff2f0;
+            border: 1px solid #ffccc7;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+
+        .retry-button {
+            display: inline-block;
+            padding: 8px 16px;
+            background-color: #1890ff;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            margin-top: 1rem;
+            font-size: 0.9rem;
+        }
+
+        .retry-button:hover {
+            background-color: #40a9ff;
+        }
+
+        .retry-button:disabled {
+            background-color: #d9d9d9;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .article-sidebar {
+                display: none;
+            }
+            
+            .article-main {
+                padding: 1.5rem;
+                width: 100%;
+            }
+
+            .article-title {
+                font-size: 1.8rem;
+            }
+
+            .article-content {
+                font-size: 1rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .article-main {
+                padding: 1rem;
+            }
+
+            .article-title {
+                font-size: 1.5rem;
+            }
+
+            .article-content {
+                font-size: 0.95rem;
+            }
+
+            .article-content pre {
+                padding: 0.75rem;
+            }
+        }
     </style>
 </head>
 <body>
     <header class="header">
         <nav class="nav">
-            <a href="/" class="logo">毛蛇蛇的开发之旅</a>
-            <a href="/" class="back-btn">返回首页</a>
+            <a href="/" class="logo" title="毛蛇蛇的开发之旅">毛蛇蛇的开发之旅</a>
+            <a href="javascript:void(0)" class="back-btn" onclick="goBack()">返回</a>
         </nav>
     </header>
 
@@ -357,8 +495,24 @@
     <script src="/js/highlight.min.js"></script>
     <link rel="stylesheet" href="/js/github.min.css">
     <script>
+        // 返回按钮功能
+        function goBack() {
+            // 检测是否为移动设备
+            const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            if (isMobile) {
+                // 在移动设备上返回上一页
+                window.history.back();
+            } else {
+                // 在桌面设备上关闭当前标签页
+                window.close();
+            }
+        }
+
         // 等待 marked 库加载完成
         let marked = window.marked;
+        let retryCount = 0;
+        const MAX_RETRIES = 3;
+        const RETRY_DELAY = 5000; // 5秒后重试
 
         // 复制代码功能
         async function copyCode(button) {
@@ -379,6 +533,38 @@
                     button.textContent = '复制代码';
                 }, 2000);
             }
+        }
+
+        function showError(message, showRetry = true) {
+            const contentElement = document.getElementById('articleContent');
+            const titleElement = document.getElementById('articleTitle');
+            const metaElement = document.getElementById('articleMeta');
+            
+            titleElement.textContent = '文章加载失败';
+            contentElement.innerHTML = `
+                <div class="error-message">
+                    <p>抱歉，${message}</p>
+                    ${showRetry ? `
+                        <button class="retry-button" onclick="retryLoadArticle()" id="retryButton">
+                            重试 (${MAX_RETRIES - retryCount}次机会)
+                        </button>
+                    ` : ''}
+                </div>
+            `;
+            metaElement.textContent = '';
+        }
+
+        function retryLoadArticle() {
+            const retryButton = document.getElementById('retryButton');
+            if (retryButton) {
+                retryButton.disabled = true;
+                retryButton.textContent = `请等待 ${RETRY_DELAY/1000} 秒后重试...`;
+            }
+            
+            setTimeout(() => {
+                retryCount++;
+                loadArticle();
+            }, RETRY_DELAY);
         }
 
         async function loadArticle() {
@@ -430,6 +616,11 @@
                 }
 
                 const response = await fetch(`/api/articles/${articleId}`);
+                
+                if (response.status === 429) {
+                    throw new Error('请求过于频繁，请稍后再试');
+                }
+                
                 if (!response.ok) {
                     throw new Error(`HTTP错误: ${response.status}`);
                 }
@@ -445,22 +636,26 @@
                 titleElement.textContent = article.title;
                 metaElement.textContent = `作者: ${article.user?.username || '未知'} | 发布时间: ${new Date(article.createdAt).toLocaleString()}`;
                 
-                // 使用配置后的 marked 解析内容
                 contentElement.innerHTML = marked.parse(article.content || '');
                 generateTOC();
 
-                // 应用语法高亮
                 if (window.hljs) {
                     document.querySelectorAll('pre code').forEach((block) => {
                         hljs.highlightBlock(block);
                     });
                 }
 
+                // 重置重试计数
+                retryCount = 0;
+
             } catch (error) {
                 console.error('加载文章失败:', error);
-                titleElement.textContent = '文章加载失败';
-                contentElement.innerHTML = `<div class="error-message">抱歉，${error.message || '无法加载文章内容'}</div>`;
-                metaElement.textContent = '';
+                
+                if (error.message.includes('请求过于频繁') && retryCount < MAX_RETRIES) {
+                    showError(error.message, true);
+                } else {
+                    showError(error.message || '无法加载文章内容', false);
+                }
             }
         }
 
