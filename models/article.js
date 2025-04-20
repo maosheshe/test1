@@ -2,18 +2,37 @@
 const {
   Model
 } = require('sequelize');
+/**
+ * 文章模型
+ * 定义文章数据表结构和关联关系
+ */
 module.exports = (sequelize, DataTypes) => {
-  class Article extends Model {
+  /**
+ * 文章模型类
+ * 包含文章基本信息和关联的用户
+ */
+class Article extends Model {
     /**
-     * Helper method for defining associations.
-     * This method is not a part of Sequelize lifecycle.
-     * The `models/index` file will call this method automatically.
+     * 定义模型关联关系
+     * @param {Object} models - 包含所有已定义模型的集合
+     * 
+     * 一篇文章属于一个用户(多对一关系)
+     * 外键userId关联到User表的id字段
+     * 通过user别名访问关联的用户
      */
     static associate(models) {
-      // define association here
+      Article.belongsTo(models.User, {
+        foreignKey: 'userId',
+        as: 'user'
+      });
     }
   }
-  Article.init({
+  /**
+ * 初始化文章模型字段定义
+ * title - 文章标题(字符串类型)
+ * content - 文章内容(文本类型)
+ */
+Article.init({
     title: DataTypes.STRING,
     content: DataTypes.TEXT
   }, {

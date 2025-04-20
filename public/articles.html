@@ -92,14 +92,14 @@
         async function loadArticles() {
             try {
                 const response = await fetch('http://localhost:3000/api/articles');
-                const articles = await response.json();
-                
+                const data = await response.json();
+                console.log(data);
                 const articleList = document.getElementById('articleList');
-                articleList.innerHTML = articles.map(article => `
+                articleList.innerHTML = data.data.articles.map(article => `
                     <div class="article-item">
                         <div class="article-title">${article.title}</div>
                         <div class="article-meta">
-                            作者: ${article.username} | 
+                            作者: ${article.user?.username || '未知'} | 
                             创建时间: ${new Date(article.createdAt).toLocaleString()}
                         </div>
                         <div style="margin-top: 10px;">
@@ -148,4 +148,4 @@
         };
     </script>
 </body>
-</html> 
+</html>

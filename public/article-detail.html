@@ -118,35 +118,7 @@
             return urlParams.get('id');
         }
 
-        // 加载文章详情
-        async function loadArticle() {
-            const articleId = getArticleId();
-            if (!articleId) {
-                alert('文章ID无效');
-                window.location.href = 'articles.html';
-                return;
-            }
 
-            try {
-                const response = await fetch(`http://localhost:3000/api/articles/${articleId}`);
-                if (!response.ok) {
-                    throw new Error('文章不存在');
-                }
-                currentArticle = await response.json();
-                
-                document.getElementById('articleTitle').textContent = currentArticle.title;
-                document.getElementById('articleMeta').innerHTML = `
-                    作者: ${currentArticle.username} | 
-                    创建时间: ${new Date(currentArticle.createdAt).toLocaleString()} |
-                    更新时间: ${new Date(currentArticle.updatedAt).toLocaleString()}
-                `;
-                document.getElementById('articleBody').textContent = currentArticle.content;
-            } catch (error) {
-                console.error('加载文章错误:', error);
-                alert('加载文章失败');
-                window.location.href = 'articles.html';
-            }
-        }
 
         // 切换编辑模式
         function toggleEdit() {
@@ -231,6 +203,49 @@
             }
         }
 
+        // 获取文章ID
+        function getArticleId() {
+            const urlParams = new URLSearchParams(window.location.search);
+            return urlParams.get('id');
+        }
+
+        // 加载文章详情
+        async function loadArticle() {
+            const articleId = getArticleId();
+            if (!articleId) {
+                alert('文章ID无效');
+                window.location.href = 'articles.html';
+                return;
+            }
+
+            try {
+                const token = localStorage.getItem('token');
+                const response = await fetch(`/api/articles/${articleId}`, {
+                    headers: {
+                        'Authorization': `Bearer ${token}`
+                    }
+                });
+                const data = await response.json();
+                
+                if (response.ok) {
+                    currentArticle = data.data.article;
+                    document.getElementById('articleTitle').textContent = currentArticle.title;
+                    document.getElementById('articleMeta').innerHTML = `
+                        作者: ${currentArticle.user?.username || currentArticle.username || '未知'} | 
+                        创建时间: ${new Date(currentArticle.createdAt || Date.now()).toLocaleString()}
+                    `;
+                    document.getElementById('articleBody').textContent = currentArticle.content || '';
+                } else {
+                    alert(data.message || '加载文章失败');
+                    window.location.href = 'articles.html';
+                }
+            } catch (error) {
+                console.error('加载文章错误:', error);
+                alert('加载文章失败，请稍后重试');
+                window.location.href = 'articles.html';
+            }
+        }
+
         // 页面加载时执行
         window.onload = () => {
             checkAuth();
@@ -238,4 +253,4 @@
         };
     </script>
 </body>
-</html> 
+</html>

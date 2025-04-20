@@ -134,13 +134,13 @@
 
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch('http://localhost:3000/api/articles', {
+                const response = await fetch('/api/articles', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
                         'Authorization': `Bearer ${token}`
                     },
-                    body: JSON.stringify({ title, content })
+                    body: JSON.stringify({ title, content }),
                 });
 
                 if (response.ok) {

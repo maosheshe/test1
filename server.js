@@ -1,76 +1,116 @@
-const express = require('express');
-const mysql = require('mysql2');
-const bcrypt = require('bcrypt');
-const jwt = require('jsonwebtoken');
-const cors = require('cors');
-const path = require('path');
-const helmet = require('helmet');
-const rateLimit = require('express-rate-limit');
+/**
+ * 用户登录与文章管理系统后端服务
+ * 提供用户认证、文章管理等RESTful API接口
+ * 实现了基本的安全防护措施
+ */
+
+// 导入所需模块
+const express = require('express'); // Express Web框架
+const mysql = require('mysql2'); // MySQL数据库驱动，支持Promise API
+const bcrypt = require('bcrypt'); // 密码哈希加密，用于安全存储用户密码
+const jwt = require('jsonwebtoken'); // JWT令牌生成与验证，用于用户会话管理
+const cors = require('cors'); // 跨域资源共享中间件
+const path = require('path'); // Node.js路径处理模块
+const helmet = require('helmet'); // 安全HTTP头设置，增强Web安全性
+const rateLimit = require('express-rate-limit'); // 请求速率限制，防止暴力攻击
+// 加载环境变量配置
 require('dotenv').config();
+
+// 创建Express应用实例
 const app = express();
 
-// 配置Helmet
+// 导入数据模型
+const {Article} = require('./models'); // 文章数据模型
+const {User} = require('./models'); // 用户数据模型
+const {Op} = require('sequelize');
+    
+
+/**
+ * 配置Helmet安全中间件
+ * 通过设置各种HTTP头来防止常见的Web漏洞
+ * 包括XSS攻击、点击劫持、MIME类型嗅探等
+ */
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
-            defaultSrc: ["'self'"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            imgSrc: ["'self'", "data:", "https:"],
-            connectSrc: ["'self'"],
-            fontSrc: ["'self'"],
-            objectSrc: ["'none'"],
-            mediaSrc: ["'self'"],
-            frameSrc: ["'none'"]
+            defaultSrc: ["'self'"], // 默认只允许同源资源
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // 允许内联脚本和eval
+            styleSrc: ["'self'", "'unsafe-inline'"], // 允许内联样式
+            imgSrc: ["'self'", "data:", "https:"], // 允许同源图片、data URL和HTTPS图片
+            connectSrc: ["'self'"], // 限制AJAX/WebSocket连接源
+            fontSrc: ["'self'"], // 限制字体加载源
+            objectSrc: ["'none'"], // 禁止<object>标签
+            mediaSrc: ["'self'"], // 限制多媒体资源源
+            frameSrc: ["'none'"] // 禁止iframe
         }
     },
-    crossOriginEmbedderPolicy: false
+    crossOriginEmbedderPolicy: false // 允许跨源嵌入
 }));
 
-// 安全中间件
+/**
+ * 配置CORS跨域中间件
+ * 根据环境配置允许的源
+ * 生产环境：仅允许特定域名
+ * 开发环境：允许所有域名
+ */
 app.use(cors({
     origin: process.env.NODE_ENV === 'production' 
-        ? ['https://badivy.cn']  // 生产环境只允许特定域名
-        : '*',  // 开发环境允许所有域名
-    credentials: true
+        ? ['https://badivy.cn'] // 生产环境域名白名单
+        : '*', // 开发环境允许所有域名
+    credentials: true // 允许跨域请求携带凭证
 }));
 
-// 速率限制
+/**
+ * 配置请求速率限制中间件
+ * 防止暴力攻击和DOS攻击
+ * 限制每个IP在15分钟内最多发起100次请求
+ */
 const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15分钟
-    max: 100 // 限制每个IP 15分钟内最多100个请求
+    windowMs: 15 * 60 * 1000, // 时间窗口：15分钟
+    max: 100 // 最大请求次数
 });
 app.use(limiter);
 
-// 其他中间件
-app.use(express.json({ limit: '10kb' }));  // 限制请求体大小
-app.use(express.static('public'));
+// 配置基础中间件
+app.use(express.json({ limit: '10kb' })); // 解析JSON请求体，限制大小为10KB
+app.use(express.static('public')); // 提供静态文件服务
 
-// 根路径重定向到登录页面
+/**
+ * 根路由处理
+ * GET /
+ * 重定向到登录页面
+ */
 app.get('/', (req, res) => {
     res.sendFile(path.join(__dirname, 'public', 'login.html'));
 });
 
-// 创建连接池
+/**
+ * 数据库连接池配置
+ * 使用连接池管理数据库连接，提高性能和可靠性
+ * 所有配置参数从环境变量读取，增强安全性和灵活性
+ */
 const pool = mysql.createPool({
-    host: process.env.DB_HOST,
-    user: process.env.DB_USER,
-    password: process.env.DB_PASSWORD,
-    database: process.env.DB_NAME,
-    port: 3306,
-    waitForConnections: true,
-    connectionLimit: 10,
-    queueLimit: 0,
-    debug: true,  // 启用调试
-    trace: true,   // 启用跟踪
-    timezone: '+08:00',  // 设置时区为东八区
-    dateStrings: true    // 将日期作为字符串返回
+    host: process.env.DB_HOST, // 数据库服务器地址
+    user: process.env.DB_USER, // 数据库用户名
+    password: process.env.DB_PASSWORD, // 数据库密码
+    database: process.env.DB_NAME, // 数据库名称
+    port: 3306, // MySQL默认端口
+    waitForConnections: true, // 连接池满时排队等待
+    connectionLimit: 10, // 最大连接数
+    queueLimit: 0, // 队列长度不限制
+    debug: true, // 启用调试日志
+    trace: true, // 启用堆栈跟踪
+    timezone: '+08:00', // 设置时区为北京时间
+    dateStrings: true // 日期以字符串形式返回
 });
 
-// 将连接池转换为Promise形式
+// 创建Promise版本的连接池
 const promisePool = pool.promise();
 
-// 测试数据库连接
+/**
+ * 测试数据库连接
+ * 在服务启动时验证数据库连接是否正常
+ */
 pool.getConnection((err, connection) => {
     if (err) {
         console.error('数据库连接失败:', err);
@@ -80,7 +120,13 @@ pool.getConnection((err, connection) => {
     connection.release();
 });
 
-// 注册路由
+/**
+ * 用户注册接口
+ * POST /api/register
+ * @param {string} username - 用户名
+ * @param {string} password - 密码
+ * @returns {object} message - 注册结果消息
+ */
 app.post('/api/register', async (req, res) => {
     const { username, password } = req.body;
 
@@ -88,26 +134,21 @@ app.post('/api/register', async (req, res) => {
         console.log('开始注册流程，用户名:', username);
         
         // 检查用户名是否已存在
-        const [existingUsers] = await promisePool.query(
-            'SELECT * FROM Users WHERE username = ?',
-            [username]
-        );
-
-        if (existingUsers.length > 0) {
+        const existingUser = await User.findOne({ where: { username } });
+        if (existingUser) {
             console.log('用户名已存在:', username);
             return res.status(400).json({ message: '用户名已存在' });
         }
 
-        // 加密密码
+        // 使用bcrypt加密密码
         const hashedPassword = await bcrypt.hash(password, 10);
         console.log('密码加密完成');
 
-        // 插入新用户
-        const now = new Date();
-        await promisePool.query(
-            'INSERT INTO Users (username, password, createdAt, updatedAt) VALUES (?, ?, ?, ?)',
-            [username, hashedPassword, now, now]
-        );
+        // 创建新用户记录
+        await User.create({
+            username,
+            password: hashedPassword
+        });
         console.log('用户数据插入成功');
 
         res.status(201).json({ message: '注册成功' });
@@ -118,22 +159,27 @@ app.post('/api/register', async (req, res) => {
     }
 });
 
-// 登录路由
+/**
+ * 用户登录接口
+ * POST /api/login
+ * @param {string} username - 用户名
+ * @param {string} password - 密码
+ * @returns {object} token - JWT访问令牌
+ */
 app.post('/api/login', async (req, res) => {
     const { username, password } = req.body;
-
+console.log('开始登录流程，用户名:', username,password);
     try {
-        // 查找用户
-        const [users] = await promisePool.query(
-            'SELECT id, username, password, createdAt, updatedAt FROM Users WHERE username = ?',
-            [username]
-        );
+        // 查询用户信息
+        const user = await User.findOne({
+            where: { username },
+            attributes: ['id', 'username', 'password', 'createdAt', 'updatedAt']
+        });
 
-        if (users.length === 0) {
+        // 用户不存在
+        if (!user) {
             return res.status(401).json({ message: '用户名或密码错误' });
         }
-
-        const user = users[0];
 
         // 验证密码
         const validPassword = await bcrypt.compare(password, user.password);
@@ -141,7 +187,7 @@ app.post('/api/login', async (req, res) => {
             return res.status(401).json({ message: '用户名或密码错误' });
         }
 
-        // 生成JWT令牌
+        // 生成JWT令牌，有效期24小时
         const token = jwt.sign(
             { userId: user.id, username: user.username },
             process.env.JWT_SECRET || 'your-secret-key',
@@ -150,41 +196,59 @@ app.post('/api/login', async (req, res) => {
 
         res.json({ token });
     } catch (error) {
-        console.error('登录错误:', error);
-        res.status(500).json({ message: '服务器错误' });
+        console.error('详细错误:', error.stack); // 输出堆栈信息
+        res.status(500).json({ status: false, message: error.message }); // 返回具体错误
     }
 });
 
-// 文章路由
+/**
+ * 创建文章接口
+ * POST /api/articles
+ * 需要JWT令牌验证
+ * @param {string} title - 文章标题
+ * @param {string} content - 文章内容
+ * @returns {object} 包含状态、消息和文章ID
+ */
 app.post('/api/articles', async (req, res) => {
     const { title, content } = req.body;
     const token = req.headers.authorization?.split(' ')[1];
-
+console.log('token:',token);
     if (!token) {
-        return res.status(401).json({ message: '未授权' });
+        return res.status(401).json({
+             status: false,
+             message: '未授权' });
     }
 
     try {
+        // 验证JWT令牌
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const userId = decoded.userId;
 
-        const now = new Date();
-        const [result] = await promisePool.query(
-            'INSERT INTO Articles (title, content, userId, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?)',
-            [title, content, userId, now, now]
-        );
+        // 创建新文章
+        const article = await Article.create({
+            title,
+            content,
+            userId
+        });
 
         res.status(201).json({
+            status: true,
             message: '文章创建成功',
-            articleId: result.insertId
+            articleId: article.id
         });
     } catch (error) {
         console.error('创建文章错误:', error);
-        res.status(500).json({ message: '服务器错误' });
+        res.status(500).json({ 
+            status: false,
+            message: '服务器错误' });
     }
 });
 
-// 格式化日期的辅助函数
+/**
+ * 日期格式化工具函数
+ * @param {string} dateString - 日期字符串
+ * @returns {string} 格式化后的日期字符串
+ */
 function formatDate(dateString) {
     if (!dateString) return '未知时间';
     const date = new Date(dateString);
@@ -200,121 +264,217 @@ function formatDate(dateString) {
     });
 }
 
+/**
+ * 获取文章列表接口
+ * GET /api/articles
+ * @returns {object} 包含状态、消息和文章列表数据
+ */
 app.get('/api/articles', async (req, res) => {
     try {
-        const [articles] = await promisePool.query(
-            'SELECT a.*, u.username FROM Articles a JOIN Users u ON a.userId = u.id ORDER BY a.createdAt DESC'
-        );
-        // 格式化日期
-        const formattedArticles = articles.map(article => ({
-            ...article,
-            createdAt: formatDate(article.createdAt),
-            updatedAt: formatDate(article.updatedAt)
-        }));
-        res.json(formattedArticles);
+        const query = req.query;
+        const where = {};
+        if (query.title) {
+            where.title = { [Op.like]: `%${query.title}%` };
+        }
+        if (query.content) {
+            where.content = { [Op.like]: `%${query.content}%` };    
+        }
+        // 查询所有文章及其作者信息
+        const articles = await Article.findAll({
+            include: [{
+                model: User,
+                attributes: ['username'],
+                as: 'user'
+            }],
+            order: [['createdAt', 'DESC']], // 按创建时间降序排序
+            where
+        });
+        
+        res.json({
+            status: true,
+            message: '获取文章列表成功',
+            data: {
+                articles: articles.map(article => ({
+                    ...article.get({ plain: true }),
+                    user: article.user ? article.user.get({ plain: true }) : null
+                }))
+            }
+        });
     } catch (error) {
         console.error('获取文章列表错误:', error);
-        res.status(500).json({ message: '服务器错误' });
+        res.status(500).json({ 
+            status: false,
+            message: '服务器错误' 
+        });
     }
 });
 
+/**
+ * 获取文章详情接口
+ * GET /api/articles/:id
+ * @param {string} id - 文章ID
+ * @returns {object} 包含状态、消息和文章详细信息
+ */
 app.get('/api/articles/:id', async (req, res) => {
     const articleId = req.params.id;
 
     try {
-        const [articles] = await promisePool.query(
-            'SELECT a.*, u.username FROM Articles a JOIN Users u ON a.userId = u.id WHERE a.id = ?',
-            [articleId]
-        );
+        // 查询文章及其作者信息
+        const article = await Article.findByPk(articleId, {
+            include: [{
+                model: User,
+                attributes: ['username'],
+                as: 'user'
+            }]
+        });
 
-        if (articles.length === 0) {
+        if (!article) {
             return res.status(404).json({ message: '文章不存在' });
         }
 
-        // 格式化日期
-        const formattedArticle = {
-            ...articles[0],
-            createdAt: formatDate(articles[0].createdAt),
-            updatedAt: formatDate(articles[0].updatedAt)
-        };
-
-        res.json(formattedArticle);
+        res.json({
+            status: true,
+            message: '获取文章详情成功',
+            data: {
+                article: {
+                    ...article.get({ plain: true }),
+                    user: article.user ? article.user.get({ plain: true }) : null
+                }
+            }
+        });
     } catch (error) {
         console.error('获取文章详情错误:', error);
-        res.status(500).json({ message: '服务器错误' });
+        res.status(500).json({ 
+            status: false,
+            message: '服务器错误' 
+        });
     }
 });
 
+/**
+ * 更新文章接口
+ * PUT /api/articles/:id
+ * 需要JWT令牌验证
+ * @param {string} id - 文章ID
+ * @param {string} title - 新的文章标题
+ * @param {string} content - 新的文章内容
+ * @returns {object} 包含状态和消息
+ */
 app.put('/api/articles/:id', async (req, res) => {
     const articleId = req.params.id;
     const { title, content } = req.body;
     const token = req.headers.authorization?.split(' ')[1];
 
     if (!token) {
-        return res.status(401).json({ message: '未授权' });
+        return res.status(401).json({
+             status: false,
+             message: '未授权' });
     }
 
     try {
+        // 验证JWT令牌
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const userId = decoded.userId;
 
         // 检查文章是否存在且属于当前用户
-        const [articles] = await promisePool.query(
-            'SELECT * FROM Articles WHERE id = ? AND userId = ?',
-            [articleId, userId]
-        );
+        const article = await Article.findOne({
+            where: {
+                id: articleId,
+                userId: userId
+            }
+        });
 
-        if (articles.length === 0) {
-            return res.status(404).json({ message: '文章不存在或无权修改' });
+        if (!article) {
+            return res.status(404).json({ 
+                status: false,
+                message: '文章不存在或无权修改' });
         }
 
-        await promisePool.query(
-            'UPDATE Articles SET title = ?, content = ?, updatedAt = ? WHERE id = ? AND userId = ?',
-            [title, content, new Date(), articleId, userId]
-        );
+        // 更新文章内容
+        await article.update({
+            title: title,
+            content: content
+        });
 
-        res.json({ message: '文章更新成功' });
+        res.json({ 
+            status: true,
+            message: '文章更新成功' 
+        });
     } catch (error) {
         console.error('更新文章错误:', error);
-        res.status(500).json({ message: '服务器错误' });
+        res.status(500).json({ 
+            status: false,
+            message: '服务器错误' });
     }
 });
 
+/**
+ * 删除文章接口
+ * DELETE /api/articles/:id
+ * 需要JWT令牌验证
+ * @param {string} id - 文章ID
+ * @returns {object} 包含状态和消息
+ */
 app.delete('/api/articles/:id', async (req, res) => {
     const articleId = req.params.id;
     const token = req.headers.authorization?.split(' ')[1];
 
     if (!token) {
-        return res.status(401).json({ message: '未授权' });
+        return res.status(401).json({ 
+            status: false,
+            message: '未授权' });
     }
 
     try {
+        // 验证JWT令牌
         const decoded = jwt.verify(token, process.env.JWT_SECRET);
         const userId = decoded.userId;
 
         // 检查文章是否存在且属于当前用户
-        const [articles] = await promisePool.query(
-            'SELECT * FROM Articles WHERE id = ? AND userId = ?',
-            [articleId, userId]
-        );
+        const article = await Article.findOne({
+            where: {
+                id: articleId,
+                userId: userId
+            }
+        });
 
-        if (articles.length === 0) {
-            return res.status(404).json({ message: '文章不存在或无权删除' });
+        if (!article) {
+            return res.status(404).json({ 
+                status: false,
+                message: '文章不存在或无权删除' });
         }
 
-        await promisePool.query(
-            'DELETE FROM Articles WHERE id = ? AND userId = ?',
-            [articleId, userId]
-        );
+        // 删除文章
+        await article.destroy();
 
-        res.json({ message: '文章删除成功' });
+        res.json({ 
+            status: true,
+            message: '文章删除成功' });
     } catch (error) {
         console.error('删除文章错误:', error);
-        res.status(500).json({ message: '服务器错误' });
+        res.status(500).json({ 
+            status: false,
+            message: '服务器错误' });
     }
 });
 
+// 启动服务器
+const startServer = (port) => {
+    try {
+        app.listen(port, () => {
+            console.log(`服务器运行在端口 ${port}`);
+        }).on('error', (err) => {
+            if (err.code === 'EADDRINUSE') {
+                console.log(`端口 ${port} 已被占用，尝试使用端口 ${port + 1}`);
+                startServer(port + 1);
+            } else {
+                console.error('服务器启动错误:', err);
+            }
+        });
+    } catch (error) {
+        console.error('服务器启动失败:', error);
+    }
+};
+
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
-    console.log(`服务器运行在端口 ${PORT}`);
-}); 
+startServer(PORT);
