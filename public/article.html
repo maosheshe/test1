@@ -1,0 +1,504 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>文章详情 - 毛蛇蛇的开发之旅</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+            line-height: 1.6;
+        }
+
+        .header {
+            background-color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 1rem 2rem;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1890ff;
+            text-decoration: none;
+        }
+
+        .main-content {
+            max-width: 1000px;
+            margin: 80px auto 40px;
+            display: flex;
+            gap: 2rem;
+            padding: 0 1rem;
+            box-sizing: border-box;
+        }
+
+        .article-sidebar {
+            width: 240px;
+            height: calc(100vh - 100px);
+            position: sticky;
+            top: 80px;
+            padding: 1rem;
+            background: white;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow-y: auto;
+            display: block;
+            box-sizing: border-box;
+        }
+
+        .toc {
+            position: relative;
+            top: 0;
+        }
+
+        .toc-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1f2329;
+            margin-bottom: 1rem;
+            padding-left: 0.5rem;
+        }
+
+        .toc-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .toc-item {
+            margin-bottom: 0.8rem;
+            font-size: 0.9rem;
+        }
+
+        .toc-link {
+            color: #4e5969;
+            text-decoration: none;
+            display: block;
+            padding: 0.3rem 0.5rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+            line-height: 1.4;
+        }
+
+        .toc-link:hover {
+            color: #1890ff;
+            background-color: #f5f6f7;
+        }
+
+        .toc-link.active {
+            color: #1890ff;
+            background-color: #e6f4ff;
+            font-weight: 500;
+        }
+
+        @media (max-width: 768px) {
+            .article-sidebar {
+                display: none;
+            }
+            
+            .article-main {
+                padding: 1.5rem;
+            }
+        }
+
+        .article-main {
+            flex: 1;
+            background: white;
+            padding: 2rem 3rem;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            min-height: calc(100vh - 160px);
+        }
+
+        .article-title {
+            font-size: 2.4rem;
+            font-weight: 600;
+            color: #1f2329;
+            margin-bottom: 1.5rem;
+            line-height: 1.3;
+        }
+
+        .article-meta {
+            color: #86909c;
+            font-size: 0.9rem;
+            padding-bottom: 1.5rem;
+            border-bottom: 1px solid #e5e6eb;
+            margin-bottom: 2rem;
+        }
+
+        .article-content {
+            font-size: 1.1rem;
+            line-height: 1.8;
+            color: #1f2329;
+        }
+
+        .article-content p {
+            margin-bottom: 1.2em;
+        }
+
+        .article-content h1, 
+        .article-content h2, 
+        .article-content h3 {
+            margin-top: 2em;
+            margin-bottom: 1em;
+            font-weight: 600;
+        }
+
+        .article-content h1 { font-size: 1.8em; }
+        .article-content h2 { font-size: 1.5em; }
+        .article-content h3 { font-size: 1.2em; }
+
+        .article-content pre {
+            background: #f5f6f7;
+            padding: 1rem;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        .article-content code {
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            background: #f5f6f7;
+            padding: 0.2em 0.4em;
+            border-radius: 3px;
+            font-size: 0.9em;
+        }
+
+        .article-content img {
+            max-width: 100%;
+            border-radius: 4px;
+            margin: 1rem 0;
+        }
+
+        .toc {
+            position: sticky;
+            top: 0;
+        }
+
+        .toc-title {
+            font-size: 1rem;
+            font-weight: 600;
+            color: #1f2329;
+            margin-bottom: 1rem;
+        }
+
+        .toc-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .toc-item {
+            margin-bottom: 0.8rem;
+            font-size: 0.9rem;
+        }
+
+        .toc-link {
+            color: #4e5969;
+            text-decoration: none;
+            display: block;
+            padding: 0.3rem 0;
+            transition: color 0.2s;
+        }
+
+        .toc-link:hover {
+            color: #1890ff;
+        }
+
+        .toc-link.active {
+            color: #1890ff;
+            font-weight: 500;
+        }
+
+        /* 代码块样式 */
+        .code-block {
+            position: relative;
+            background-color: #f6f8fa;
+            border-radius: 6px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .code-block pre {
+            margin: 0;
+            padding-right: 40px;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            display: block;
+        }
+
+        /* 复制按钮样式 */
+        .copy-button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 4px 8px;
+            font-size: 12px;
+            color: #666;
+            background-color: #fff;
+            border: 1px solid #d1d5da;
+            border-radius: 4px;
+            cursor: pointer;
+            display: block;
+            transition: all 0.2s;
+        }
+
+        .copy-button:hover {
+            background-color: #f3f4f6;
+            border-color: #1890ff;
+            color: #1890ff;
+        }
+
+        .copy-button.copied {
+            color: #28a745;
+            border-color: #28a745;
+        }
+
+        /* 语言标签样式 */
+        .code-lang {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            font-size: 12px;
+            color: #666;
+            background-color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #d1d5da;
+        }
+
+        /* 页脚样式 */
+        .footer {
+            text-align: center;
+            padding: 2rem 0;
+            background-color: #fff;
+            margin-top: 2rem;
+            box-shadow: 0 -1px 3px rgba(0,0,0,0.1);
+        }
+
+        .footer .copyright {
+            color: #666;
+            font-size: 0.9rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .footer .icp {
+            font-size: 0.8rem;
+        }
+
+        .footer .icp a {
+            color: #666;
+            text-decoration: none;
+            transition: color 0.2s;
+        }
+
+        .footer .icp a:hover {
+            color: #1890ff;
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <nav class="nav">
+            <a href="/" class="logo">毛蛇蛇的开发之旅</a>
+            <a href="/" class="back-btn">返回首页</a>
+        </nav>
+    </header>
+
+    <main class="main-content">
+        <aside class="article-sidebar">
+            <div class="toc">
+                <h3 class="toc-title">目录</h3>
+                <ul class="toc-list" id="tocList">
+                    <!-- 目录将通过 JavaScript 动态生成 -->
+                </ul>
+            </div>
+        </aside>
+        <div class="article-main">
+            <article>
+                <header class="article-header">
+                    <h1 class="article-title" id="articleTitle">加载中...</h1>
+                    <div class="article-meta" id="articleMeta"></div>
+                </header>
+                <div class="article-content" id="articleContent">
+                    加载中...
+                </div>
+            </article>
+        </div>
+    </main>
+
+    <footer class="footer">
+        <div class="copyright">Copyright © 2025 毛蛇蛇 All Rights Reserved</div>
+        <div class="icp">
+            <a href="https://beian.miit.gov.cn/" target="_blank">粤ICP备2025400537号-1</a>
+        </div>
+    </footer>
+
+    <script src="/js/marked.min.js"></script>
+    <script src="/js/highlight.min.js"></script>
+    <link rel="stylesheet" href="/js/github.min.css">
+    <script>
+        // 等待 marked 库加载完成
+        let marked = window.marked;
+
+        // 复制代码功能
+        async function copyCode(button) {
+            const codeBlock = button.parentElement;
+            const code = codeBlock.querySelector('code').textContent;
+            try {
+                await navigator.clipboard.writeText(code);
+                button.textContent = '已复制！';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = '复制代码';
+                    button.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                console.error('复制失败:', err);
+                button.textContent = '复制失败';
+                setTimeout(() => {
+                    button.textContent = '复制代码';
+                }, 2000);
+            }
+        }
+
+        async function loadArticle() {
+            const loadingText = '加载中...';
+            const contentElement = document.getElementById('articleContent');
+            const titleElement = document.getElementById('articleTitle');
+            const metaElement = document.getElementById('articleMeta');
+            
+            titleElement.textContent = loadingText;
+            contentElement.textContent = loadingText;
+            metaElement.textContent = '';
+
+            try {
+                if (!marked) {
+                    throw new Error('Marked 库未加载完成');
+                }
+
+                // 配置 marked.js
+                const renderer = new marked.Renderer();
+                
+                // 自定义代码块渲染
+                renderer.code = function(code, language) {
+                    const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+                    return `
+                        <div class="code-block">
+                            <span class="code-lang">${language || 'text'}</span>
+                            <button class="copy-button" onclick="copyCode(this)">复制代码</button>
+                            <pre><code class="language-${language || 'text'}">${escapedCode}</code></pre>
+                        </div>
+                    `;
+                };
+
+                // 配置 marked 选项
+                marked.setOptions({
+                    renderer: renderer,
+                    highlight: function(code, lang) {
+                        return code;
+                    },
+                    langPrefix: 'language-',
+                    breaks: true,
+                    gfm: true
+                });
+
+                const urlParams = new URLSearchParams(window.location.search);
+                const articleId = urlParams.get('id');
+
+                if (!articleId) {
+                    throw new Error('未找到文章ID');
+                }
+
+                const response = await fetch(`/api/articles/${articleId}`);
+                if (!response.ok) {
+                    throw new Error(`HTTP错误: ${response.status}`);
+                }
+
+                const data = await response.json();
+                if (!data.data?.article) {
+                    throw new Error('文章不存在');
+                }
+
+                const article = data.data.article;
+                
+                document.title = `${article.title} - 毛蛇蛇的开发之旅`;
+                titleElement.textContent = article.title;
+                metaElement.textContent = `作者: ${article.user?.username || '未知'} | 发布时间: ${new Date(article.createdAt).toLocaleString()}`;
+                
+                // 使用配置后的 marked 解析内容
+                contentElement.innerHTML = marked.parse(article.content || '');
+                generateTOC();
+
+                // 应用语法高亮
+                if (window.hljs) {
+                    document.querySelectorAll('pre code').forEach((block) => {
+                        hljs.highlightBlock(block);
+                    });
+                }
+
+            } catch (error) {
+                console.error('加载文章失败:', error);
+                titleElement.textContent = '文章加载失败';
+                contentElement.innerHTML = `<div class="error-message">抱歉，${error.message || '无法加载文章内容'}</div>`;
+                metaElement.textContent = '';
+            }
+        }
+
+        function generateTOC() {
+            const tocList = document.getElementById('tocList');
+            const headings = document.querySelectorAll('.article-content h1, .article-content h2, .article-content h3');
+            
+            tocList.innerHTML = '';
+            
+            headings.forEach((heading, index) => {
+                const level = parseInt(heading.tagName.charAt(1));
+                const text = heading.textContent;
+                const id = `heading-${index}`;
+                heading.id = id;
+                
+                const li = document.createElement('li');
+                li.className = 'toc-item';
+                li.style.paddingLeft = `${(level - 1) * 1}rem`;
+                
+                const a = document.createElement('a');
+                a.href = `#${id}`;
+                a.className = 'toc-link';
+                a.textContent = text;
+                
+                a.addEventListener('click', (e) => {
+                    e.preventDefault();
+                    heading.scrollIntoView({ behavior: 'smooth' });
+                });
+                
+                li.appendChild(a);
+                tocList.appendChild(li);
+            });
+        }
+
+        // 初始化
+        window.onload = () => {
+            loadArticle();
+        };
+    </script>
+</body>
+</html>

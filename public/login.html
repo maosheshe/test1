@@ -54,6 +54,19 @@
             margin-top: 5px;
             display: none;
         }
+        .remember-me {
+            display: flex;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .remember-me input[type="checkbox"] {
+            width: auto;
+            margin-right: 8px;
+        }
+        .remember-me label {
+            color: #666;
+            font-size: 14px;
+        }
     </style>
 </head>
 <body>
@@ -65,6 +78,10 @@
             </div>
             <div class="form-group">
                 <input type="password" id="loginPassword" placeholder="密码">
+            </div>
+            <div class="remember-me">
+                <input type="checkbox" id="rememberMe" checked>
+                <label for="rememberMe">记住登录状态30天</label>
             </div>
             <button onclick="login()">登录</button>
             <div class="switch-form">
@@ -100,9 +117,32 @@
             registerForm.style.display = registerForm.style.display === 'none' ? 'block' : 'none';
         }
 
+        // 检查是否已登录
+        function checkLoginStatus() {
+            const token = localStorage.getItem('token');
+            const expiry = localStorage.getItem('tokenExpiry');
+            
+            if (token && expiry) {
+                // 如果token未过期，直接跳转到首页
+                if (new Date().getTime() < parseInt(expiry)) {
+                    window.location.href = '/';
+                    return;
+                }
+            }
+        }
+
+        // 设置token和过期时间
+        function setTokenWithExpiry(token, username) {
+            const expiry = new Date().getTime() + (30 * 24 * 60 * 60 * 1000); // 30天
+            localStorage.setItem('token', token);
+            localStorage.setItem('username', username);
+            localStorage.setItem('tokenExpiry', expiry.toString());
+        }
+
         async function login() {
             const username = document.getElementById('loginUsername').value;
             const password = document.getElementById('loginPassword').value;
+            const rememberMe = document.getElementById('rememberMe').checked;
             const errorElement = document.getElementById('loginError');
 
             try {
@@ -116,8 +156,15 @@
 
                 const data = await response.json();
                 if (response.ok) {
-                    localStorage.setItem('token', data.token);
-                    window.location.href = 'articles.html';
+                    if (rememberMe) {
+                        // 设置token和过期时间
+                        setTokenWithExpiry(data.token, username);
+                    } else {
+                        // 仅在当前会话中保存
+                        localStorage.setItem('token', data.token);
+                        localStorage.setItem('username', username);
+                    }
+                    window.location.href = '/';
                 } else {
                     errorElement.style.display = 'block';
                     errorElement.textContent = data.message || '登录失败';
@@ -162,6 +209,9 @@
                 errorElement.textContent = '服务器错误，请稍后重试';
             }
         }
+
+        // 页面加载时检查登录状态
+        window.onload = checkLoginStatus;
     </script>
 </body>
 </html>

@@ -1,10 +1,11 @@
 {
   "name": "user-auth-system",
   "version": "1.0.0",
-  "description": "用户登录注册系统",
+  "description": "毛蛇蛇开发之旅",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js",
+    "start": "pm2 start ecosystem.config.js",
+    "stop": "pm2 stop ecosystem.config.js",
     "dev": "nodemon server.js",
     "precommit": "lint-staged",
     "prepare": "husky install"
@@ -24,6 +25,7 @@
     "helmet": "^4.6.0",
     "jsonwebtoken": "^8.5.1",
     "mysql2": "^3.14.0",
+    "pm2": "^6.0.5",
     "sequelize": "^6.37.7"
   },
   "devDependencies": {

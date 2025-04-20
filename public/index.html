@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>毛蛇蛇的开发之旅</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            color: #333;
+        }
+
+        .header {
+            background-color: #fff;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            padding: 1rem 2rem;
+            position: fixed;
+            width: 100%;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav {
+            max-width: 1200px;
+            margin: 0 auto;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .logo {
+            font-size: 1.5rem;
+            font-weight: bold;
+            color: #1890ff;
+            text-decoration: none;
+        }
+
+        .login-btn {
+            padding: 8px 20px;
+            background-color: #1890ff;
+            color: white;
+            border-radius: 4px;
+            text-decoration: none;
+            transition: background-color 0.3s;
+        }
+
+        .login-btn:hover {
+            background-color: #40a9ff;
+        }
+
+        .main-content {
+            max-width: 1200px;
+            margin: 100px auto 40px;
+            padding: 0 20px;
+        }
+
+        .hero {
+            text-align: center;
+            padding: 60px 0;
+        }
+
+        .hero h1 {
+            font-size: 2.5rem;
+            margin-bottom: 1rem;
+        }
+
+        .hero p {
+            font-size: 1.2rem;
+            color: #666;
+            margin-bottom: 2rem;
+        }
+
+        .article-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+            gap: 2rem;
+            padding: 2rem 0;
+        }
+
+        .article-card {
+            background: white;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+
+        .article-card:hover {
+            transform: translateY(-5px);
+        }
+
+        .article-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+        }
+
+        .article-content {
+            padding: 1.5rem;
+        }
+
+        .article-title {
+            font-size: 1.2rem;
+            margin-bottom: 0.5rem;
+        }
+
+        .article-excerpt {
+            color: #666;
+            font-size: 0.9rem;
+            line-height: 1.5;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 2rem;
+            background-color: #fff;
+            color: #666;
+            font-size: 0.9rem;
+        }
+
+        .icp {
+            margin-top: 1rem;
+            font-size: 0.8rem;
+        }
+
+        .icp a {
+            color: #666;
+            text-decoration: none;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            margin-top: 2rem;
+            gap: 1rem;
+        }
+
+        .pagination button {
+            padding: 8px 20px;
+            background-color: white;
+            border: 1px solid #1890ff;
+            color: #1890ff;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .pagination button.active {
+            background-color: #1890ff;
+            color: white;
+        }
+
+        .pagination button:hover:not(:disabled) {
+            background-color: #40a9ff;
+            color: white;
+        }
+
+        .pagination button:disabled {
+            border-color: #d9d9d9;
+            color: #d9d9d9;
+            cursor: not-allowed;
+        }
+
+        .user-menu {
+            position: relative;
+            display: inline-block;
+            padding: 8px 0;
+            cursor: pointer;
+        }
+
+        .user-menu-content {
+            display: none;
+            position: absolute;
+            right: 0;
+            top: 100%;
+            background-color: white;
+            min-width: 160px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            border-radius: 4px;
+            padding: 8px 0;
+            margin-top: 4px;
+            opacity: 0;
+            transform: translateY(-10px);
+            transition: opacity 0.3s, transform 0.3s;
+            pointer-events: none;
+        }
+
+        .user-menu-content::before {
+            content: '';
+            position: absolute;
+            top: -16px;
+            left: 0;
+            right: 0;
+            height: 16px;
+            background: transparent;
+        }
+
+        .user-menu:hover .user-menu-content {
+            display: block;
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        .user-menu-item {
+            display: block;
+            padding: 10px 20px;
+            color: #333;
+            text-decoration: none;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .user-menu-item:hover {
+            background-color: #f5f5f5;
+            color: #1890ff;
+        }
+
+        .username {
+            color: #1890ff;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            padding: 0 8px;
+        }
+
+        .username::after {
+            content: '';
+            display: inline-block;
+            width: 0;
+            height: 0;
+            border-left: 4px solid transparent;
+            border-right: 4px solid transparent;
+            border-top: 4px solid currentColor;
+            margin-left: 6px;
+            transition: transform 0.2s;
+        }
+
+        .user-menu:hover .username::after {
+            transform: rotate(180deg);
+        }
+    </style>
+</head>
+<body>
+    <header class="header">
+        <nav class="nav">
+            <a href="/" class="logo">毛蛇蛇的开发之旅</a>
+            <div id="userSection">
+                <a href="/login.html" class="login-btn" id="loginBtn">登录</a>
+            </div>
+        </nav>
+    </header>
+
+    <main class="main-content">
+        <section class="hero">
+            <h1>欢迎来到我的博客</h1>
+            <p>分享技术、生活和一切有趣的事物</p>
+        </section>
+
+        <div class="article-grid" id="articleGrid">
+            <!-- 文章将通过JavaScript动态加载 -->
+        </div>
+        <div class="pagination" id="pagination"></div>
+    </main>
+
+    <footer class="footer">
+        <div>Copyright © 2025 毛蛇蛇 All Rights Reserved</div>
+        <div class="icp">
+            <a href="https://beian.miit.gov.cn/" target="_blank">粤ICP备2025400537号-1</a>
+        </div>
+    </footer>
+
+    <script>
+        let currentPage = 1;
+        const pageSize = 10;
+
+        // 检查登录状态
+        function checkLoginStatus() {
+            const token = localStorage.getItem('token');
+            const username = localStorage.getItem('username');
+            const userSection = document.getElementById('userSection');
+
+            if (token && username) {
+                userSection.innerHTML = `
+                    <div class="user-menu">
+                        <div class="username">${username}</div>
+                        <div class="user-menu-content">
+                            <a href="/admin/dashboard.html" class="user-menu-item">
+                                <span>控制面板</span>
+                            </a>
+                            <a href="/admin/articles.html" class="user-menu-item">
+                                <span>文章管理</span>
+                            </a>
+                            <a href="javascript:void(0)" class="user-menu-item" onclick="logout()">
+                                <span>安全退出</span>
+                            </a>
+                        </div>
+                    </div>
+                `;
+            } else {
+                userSection.innerHTML = '<a href="/login.html" class="login-btn">登录</a>';
+            }
+        }
+
+        // 退出登录
+        function logout() {
+            localStorage.removeItem('token');
+            localStorage.removeItem('username');
+            localStorage.removeItem('tokenExpiry');
+            window.location.href = '/';
+        }
+
+        // 检查token是否过期
+        function checkTokenExpiry() {
+            const expiry = localStorage.getItem('tokenExpiry');
+            if (expiry && new Date().getTime() > parseInt(expiry)) {
+                logout();
+                return false;
+            }
+            return true;
+        }
+
+        // 设置token和过期时间（30天）
+        function setTokenWithExpiry(token, username) {
+            const expiry = new Date().getTime() + (30 * 24 * 60 * 60 * 1000); // 30天
+            localStorage.setItem('token', token);
+            localStorage.setItem('username', username);
+            localStorage.setItem('tokenExpiry', expiry.toString());
+        }
+
+        async function loadArticles(page = 1) {
+            try {
+                if (!checkTokenExpiry()) {
+                    return;
+                }
+
+                const response = await fetch(`/api/articles?page=${page}&pageSize=${pageSize}`);
+                const data = await response.json();
+                const articleGrid = document.getElementById('articleGrid');
+                
+                articleGrid.innerHTML = data.data.articles.map(article => `
+                    <article class="article-card">
+                        <a href="/article.html?id=${article.id}" style="text-decoration: none; color: inherit;">
+                            <img src="https://picsum.photos/600/400?random=${article.id}" alt="文章配图" class="article-image">
+                            <div class="article-content">
+                                <h2 class="article-title">${article.title}</h2>
+                                <p class="article-excerpt">${article.content.substring(0, 100)}...</p>
+                            </div>
+                        </a>
+                    </article>
+                `).join('');
+
+                // 渲染分页控件
+                renderPagination(data.data.pagination);
+            } catch (error) {
+                console.error('加载文章失败:', error);
+            }
+        }
+
+        function renderPagination(pagination) {
+            const { total, current, pageSize, totalPages } = pagination;
+            const paginationElement = document.getElementById('pagination');
+            
+            let paginationHtml = `
+                <button onclick="loadArticles(1)" ${current === 1 ? 'disabled' : ''}>首页</button>
+                <button onclick="loadArticles(${current - 1})" ${current === 1 ? 'disabled' : ''}>上一页</button>
+            `;
+
+            // 显示页码
+            for (let i = Math.max(1, current - 2); i <= Math.min(totalPages, current + 2); i++) {
+                paginationHtml += `
+                    <button onclick="loadArticles(${i})" class="${i === current ? 'active' : ''}">${i}</button>
+                `;
+            }
+
+            paginationHtml += `
+                <button onclick="loadArticles(${current + 1})" ${current === totalPages ? 'disabled' : ''}>下一页</button>
+                <button onclick="loadArticles(${totalPages})" ${current === totalPages ? 'disabled' : ''}>末页</button>
+            `;
+
+            paginationElement.innerHTML = paginationHtml;
+        }
+
+        window.onload = () => {
+            checkLoginStatus();
+            loadArticles(1);
+        };
+    </script>
+</body>
+</html>

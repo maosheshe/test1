@@ -34,7 +34,7 @@ app.use(helmet({
     contentSecurityPolicy: {
         directives: {
             defaultSrc: ["'self'"], // 默认只允许同源资源
-            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'"], // 允许内联脚本和eval
+            scriptSrc: ["'self'", "'unsafe-inline'", "'unsafe-eval'", "https://cdn.jsdelivr.net"], // 允许从 cdn.jsdelivr.net 加载脚本
             styleSrc: ["'self'", "'unsafe-inline'"], // 允许内联样式
             imgSrc: ["'self'", "data:", "https:"], // 允许同源图片、data URL和HTTPS图片
             connectSrc: ["'self'"], // 限制AJAX/WebSocket连接源
@@ -272,6 +272,10 @@ function formatDate(dateString) {
 app.get('/api/articles', async (req, res) => {
     try {
         const query = req.query;
+        const page = parseInt(query.page) || 1;
+        const pageSize = parseInt(query.pageSize) || 10;
+        const offset = (page - 1) * pageSize;
+        
         const where = {};
         if (query.title) {
             where.title = { [Op.like]: `%${query.title}%` };
@@ -279,7 +283,11 @@ app.get('/api/articles', async (req, res) => {
         if (query.content) {
             where.content = { [Op.like]: `%${query.content}%` };    
         }
-        // 查询所有文章及其作者信息
+
+        // 查询文章总数
+        const total = await Article.count({ where });
+        
+        // 查询分页后的文章及其作者信息
         const articles = await Article.findAll({
             include: [{
                 model: User,
@@ -287,7 +295,9 @@ app.get('/api/articles', async (req, res) => {
                 as: 'user'
             }],
             order: [['createdAt', 'DESC']], // 按创建时间降序排序
-            where
+            where,
+            limit: pageSize,
+            offset: offset
         });
         
         res.json({
@@ -297,7 +307,13 @@ app.get('/api/articles', async (req, res) => {
                 articles: articles.map(article => ({
                     ...article.get({ plain: true }),
                     user: article.user ? article.user.get({ plain: true }) : null
-                }))
+                })),
+                pagination: {
+                    total,
+                    current: page,
+                    pageSize,
+                    totalPages: Math.ceil(total / pageSize)
+                }
             }
         });
     } catch (error) {

@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文章详情</title>
+    <script src="/js/marked.min.js"></script>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -73,6 +74,67 @@
             border-radius: 4px;
             resize: vertical;
         }
+        /* 代码块样式 */
+        .code-block {
+            position: relative;
+            background-color: #f6f8fa;
+            border-radius: 6px;
+            padding: 16px;
+            margin: 16px 0;
+        }
+
+        .code-block pre {
+            margin: 0;
+            padding-right: 40px;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            font-family: Consolas, Monaco, 'Courier New', monospace;
+            font-size: 14px;
+            line-height: 1.5;
+            display: block;
+        }
+
+        /* 复制按钮样式 */
+        .copy-button {
+            position: absolute;
+            top: 8px;
+            right: 8px;
+            padding: 4px 8px;
+            font-size: 12px;
+            color: #666;
+            background-color: #fff;
+            border: 1px solid #d1d5da;
+            border-radius: 4px;
+            cursor: pointer;
+            display: block;
+            transition: all 0.2s;
+        }
+
+        .copy-button:hover {
+            background-color: #f3f4f6;
+            border-color: #1890ff;
+            color: #1890ff;
+        }
+
+        .copy-button.copied {
+            color: #28a745;
+            border-color: #28a745;
+        }
+
+        /* 语言标签样式 */
+        .code-lang {
+            position: absolute;
+            top: 8px;
+            left: 8px;
+            font-size: 12px;
+            color: #666;
+            background-color: #fff;
+            padding: 2px 6px;
+            border-radius: 3px;
+            border: 1px solid #d1d5da;
+        }
     </style>
 </head>
 <body>
@@ -103,6 +165,51 @@
     <script>
         let currentArticle = null;
 
+        // 配置 marked.js
+        marked.setOptions({
+            highlight: function(code, lang) {
+                return code;
+            },
+            langPrefix: 'language-'
+        });
+
+        // 扩展 marked.js 的渲染器
+        const renderer = new marked.Renderer();
+        renderer.code = function(code, language) {
+            const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
+            return `
+                <div class="code-block">
+                    <span class="code-lang">${language || 'text'}</span>
+                    <button class="copy-button" onclick="copyCode(this)">复制代码</button>
+                    <pre><code class="language-${language}">${escapedCode}</code></pre>
+                </div>
+            `;
+        };
+
+        // 使用自定义渲染器
+        marked.use({ renderer });
+
+        // 复制代码功能
+        async function copyCode(button) {
+            const codeBlock = button.parentElement;
+            const code = codeBlock.querySelector('code').textContent;
+            try {
+                await navigator.clipboard.writeText(code);
+                button.textContent = '已复制！';
+                button.classList.add('copied');
+                setTimeout(() => {
+                    button.textContent = '复制代码';
+                    button.classList.remove('copied');
+                }, 2000);
+            } catch (err) {
+                console.error('复制失败:', err);
+                button.textContent = '复制失败';
+                setTimeout(() => {
+                    button.textContent = '复制代码';
+                }, 2000);
+            }
+        }
+
         // 检查登录状态
         function checkAuth() {
             const token = localStorage.getItem('token');
@@ -117,8 +224,6 @@
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get('id');
         }
-
-
 
         // 切换编辑模式
         function toggleEdit() {
@@ -151,7 +256,7 @@
 
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(`http://localhost:3000/api/articles/${articleId}`, {
+                const response = await fetch(`/api/articles/${articleId}`, {
                     method: 'PUT',
                     headers: {
                         'Content-Type': 'application/json',
@@ -183,7 +288,7 @@
             const articleId = getArticleId();
             try {
                 const token = localStorage.getItem('token');
-                const response = await fetch(`http://localhost:3000/api/articles/${articleId}`, {
+                const response = await fetch(`/api/articles/${articleId}`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${token}`
@@ -203,54 +308,39 @@
             }
         }
 
-        // 获取文章ID
-        function getArticleId() {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get('id');
-        }
-
-        // 加载文章详情
+        // 加载文章
         async function loadArticle() {
             const articleId = getArticleId();
-            if (!articleId) {
-                alert('文章ID无效');
-                window.location.href = 'articles.html';
-                return;
-            }
-
             try {
-                const token = localStorage.getItem('token');
-                const response = await fetch(`/api/articles/${articleId}`, {
-                    headers: {
-                        'Authorization': `Bearer ${token}`
-                    }
-                });
-                const data = await response.json();
-                
+                const response = await fetch(`/api/articles/${articleId}`);
                 if (response.ok) {
-                    currentArticle = data.data.article;
-                    document.getElementById('articleTitle').textContent = currentArticle.title;
-                    document.getElementById('articleMeta').innerHTML = `
-                        作者: ${currentArticle.user?.username || currentArticle.username || '未知'} | 
-                        创建时间: ${new Date(currentArticle.createdAt || Date.now()).toLocaleString()}
-                    `;
-                    document.getElementById('articleBody').textContent = currentArticle.content || '';
+                    const result = await response.json();
+                    if (result.status && result.data && result.data.article) {
+                        const article = result.data.article;
+                        currentArticle = article;
+                        
+                        document.getElementById('articleTitle').textContent = article.title;
+                        document.getElementById('articleMeta').textContent = `作者: ${article.user?.username || '未知'} | 创建时间: ${new Date(article.createdAt).toLocaleString()}`;
+                        
+                        // 使用配置后的 marked 解析 Markdown 内容
+                        const htmlContent = marked.parse(article.content || '');
+                        document.getElementById('articleBody').innerHTML = htmlContent;
+                    } else {
+                        alert('文章数据格式错误');
+                    }
                 } else {
+                    const data = await response.json();
                     alert(data.message || '加载文章失败');
-                    window.location.href = 'articles.html';
                 }
             } catch (error) {
-                console.error('加载文章错误:', error);
+                console.error('加载文章失败:', error);
                 alert('加载文章失败，请稍后重试');
-                window.location.href = 'articles.html';
             }
         }
 
         // 页面加载时执行
-        window.onload = () => {
-            checkAuth();
-            loadArticle();
-        };
+        checkAuth();
+        loadArticle();
     </script>
 </body>
 </html>
