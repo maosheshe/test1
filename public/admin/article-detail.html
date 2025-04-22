@@ -217,6 +217,20 @@
                 window.location.href = 'login.html';
                 return;
             }
+            // 检查 token 是否过期
+            try {
+                const tokenData = JSON.parse(atob(token.split('.')[1]));
+                if (tokenData.exp * 1000 < Date.now()) {
+                    localStorage.removeItem('token');
+                    window.location.href = 'login.html';
+                    return;
+                }
+            } catch (error) {
+                console.error('Token 解析错误:', error);
+                localStorage.removeItem('token');
+                window.location.href = 'login.html';
+                return;
+            }
         }
 
         // 获取文章ID
@@ -251,11 +265,44 @@
         // 保存文章
         async function saveArticle() {
             const articleId = getArticleId();
-            const title = document.getElementById('editTitle').value;
-            const content = document.getElementById('editContent').value;
+            const title = document.getElementById('editTitle').value.trim();
+            const content = document.getElementById('editContent').value.trim();
+
+            // 验证输入
+            if (!title) {
+                alert('请输入文章标题');
+                return;
+            }
+            if (!content) {
+                alert('请输入文章内容');
+                return;
+            }
 
             try {
                 const token = localStorage.getItem('token');
+                if (!token) {
+                    alert('登录已过期，请重新登录');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
+                // 检查 token 是否过期
+                try {
+                    const tokenData = JSON.parse(atob(token.split('.')[1]));
+                    if (tokenData.exp * 1000 < Date.now()) {
+                        localStorage.removeItem('token');
+                        alert('登录已过期，请重新登录');
+                        window.location.href = 'login.html';
+                        return;
+                    }
+                } catch (error) {
+                    console.error('Token 解析错误:', error);
+                    localStorage.removeItem('token');
+                    alert('登录已过期，请重新登录');
+                    window.location.href = 'login.html';
+                    return;
+                }
+
                 const response = await fetch(`/api/articles/${articleId}`, {
                     method: 'PUT',
                     headers: {
@@ -265,17 +312,34 @@
                     body: JSON.stringify({ title, content })
                 });
 
+                const data = await response.json();
+
                 if (response.ok) {
                     alert('文章更新成功');
                     loadArticle();
                     toggleEdit();
                 } else {
-                    const data = await response.json();
-                    alert(data.message || '更新失败');
+                    let errorMessage = '更新失败';
+                    if (response.status === 401) {
+                        errorMessage = '登录已过期，请重新登录';
+                        localStorage.removeItem('token');
+                        window.location.href = 'login.html';
+                    } else if (response.status === 404) {
+                        errorMessage = '文章不存在或您没有权限修改';
+                    } else if (response.status === 500) {
+                        errorMessage = '服务器错误，请稍后重试';
+                    } else if (data.message) {
+                        errorMessage = data.message;
+                    }
+                    alert(errorMessage);
                 }
             } catch (error) {
                 console.error('更新文章错误:', error);
-                alert('更新失败，请稍后重试');
+                if (error.name === 'TypeError' && error.message.includes('Failed to fetch')) {
+                    alert('网络连接失败，请检查网络设置');
+                } else {
+                    alert('更新失败，请稍后重试');
+                }
             }
         }
 

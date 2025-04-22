@@ -187,11 +187,11 @@ console.log('开始登录流程，用户名:', username,password);
             return res.status(401).json({ message: '用户名或密码错误' });
         }
 
-        // 生成JWT令牌，有效期24小时
+        // 生成JWT令牌，有效期7天
         const token = jwt.sign(
             { userId: user.id, username: user.username },
             process.env.JWT_SECRET || 'your-secret-key',
-            { expiresIn: '24h' }
+            { expiresIn: '7d' }
         );
 
         res.json({ token });

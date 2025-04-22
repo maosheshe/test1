@@ -615,47 +615,66 @@
                     throw new Error('未找到文章ID');
                 }
 
-                const response = await fetch(`/api/articles/${articleId}`);
-                
-                if (response.status === 429) {
-                    throw new Error('请求过于频繁，请稍后再试');
-                }
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP错误: ${response.status}`);
-                }
+                try {
+                    const response = await fetch(`/api/articles/${articleId}`);
+                    
+                    if (response.status === 429) {
+                        throw new Error('请求过于频繁，请稍后再试');
+                    }
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP错误: ${response.status}`);
+                    }
 
-                const data = await response.json();
-                if (!data.data?.article) {
-                    throw new Error('文章不存在');
+                    const data = await response.json();
+                    if (!data.data?.article) {
+                        throw new Error('文章不存在');
+                    }
+
+                    const article = data.data.article;
+                    
+                    document.title = `${article.title} - 毛蛇蛇的开发之旅`;
+                    titleElement.textContent = article.title;
+                    metaElement.textContent = `作者: ${article.user?.username || '未知'} | 发布时间: ${new Date(article.createdAt).toLocaleString()}`;
+                    
+                    contentElement.innerHTML = marked.parse(article.content || '');
+                    generateTOC();
+
+                    if (window.hljs) {
+                        document.querySelectorAll('pre code').forEach((block) => {
+                            hljs.highlightBlock(block);
+                        });
+                    }
+
+                    // 重置重试计数
+                    retryCount = 0;
+
+                } catch (fetchError) {
+                    // 处理网络错误
+                    if (fetchError.name === 'TypeError' && fetchError.message.includes('Failed to fetch')) {
+                        throw new Error('网络连接失败，请检查网络设置');
+                    }
+                    throw fetchError;
                 }
-
-                const article = data.data.article;
-                
-                document.title = `${article.title} - 毛蛇蛇的开发之旅`;
-                titleElement.textContent = article.title;
-                metaElement.textContent = `作者: ${article.user?.username || '未知'} | 发布时间: ${new Date(article.createdAt).toLocaleString()}`;
-                
-                contentElement.innerHTML = marked.parse(article.content || '');
-                generateTOC();
-
-                if (window.hljs) {
-                    document.querySelectorAll('pre code').forEach((block) => {
-                        hljs.highlightBlock(block);
-                    });
-                }
-
-                // 重置重试计数
-                retryCount = 0;
 
             } catch (error) {
                 console.error('加载文章失败:', error);
                 
-                if (error.message.includes('请求过于频繁') && retryCount < MAX_RETRIES) {
-                    showError(error.message, true);
-                } else {
-                    showError(error.message || '无法加载文章内容', false);
+                let errorMessage = error.message;
+                let shouldRetry = false;
+
+                if (error.message.includes('请求过于频繁')) {
+                    errorMessage = '服务器请求次数过多，请稍后再试';
+                    shouldRetry = retryCount < MAX_RETRIES;
+                } else if (error.message.includes('网络连接失败')) {
+                    errorMessage = '网络连接失败，请检查网络设置后重试';
+                    shouldRetry = retryCount < MAX_RETRIES;
+                } else if (error.message.includes('HTTP错误')) {
+                    errorMessage = '服务器暂时无法响应，请稍后再试';
+                    shouldRetry = retryCount < MAX_RETRIES;
                 }
+
+                showError(errorMessage, shouldRetry);
             }
         }
 

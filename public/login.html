@@ -81,7 +81,7 @@
             </div>
             <div class="remember-me">
                 <input type="checkbox" id="rememberMe" checked>
-                <label for="rememberMe">记住登录状态30天</label>
+                <label for="rememberMe">记住登录状态7天</label>
             </div>
             <button onclick="login()">登录</button>
             <div class="switch-form">
@@ -133,7 +133,7 @@
 
         // 设置token和过期时间
         function setTokenWithExpiry(token, username) {
-            const expiry = new Date().getTime() + (30 * 24 * 60 * 60 * 1000); // 30天
+            const expiry = new Date().getTime() + (7 * 24 * 60 * 60 * 1000); // 7天
             localStorage.setItem('token', token);
             localStorage.setItem('username', username);
             localStorage.setItem('tokenExpiry', expiry.toString());
