@@ -277,11 +277,14 @@ app.get('/api/articles', async (req, res) => {
         const offset = (page - 1) * pageSize;
         
         const where = {};
-        if (query.title) {
-            where.title = { [Op.like]: `%${query.title}%` };
-        }
-        if (query.content) {
-            where.content = { [Op.like]: `%${query.content}%` };    
+        if (query.title || query.content) {
+            where[Op.or] = [];
+            if (query.title) {
+                where[Op.or].push({ title: { [Op.like]: `%${query.title}%` } });
+            }
+            if (query.content) {
+                where[Op.or].push({ content: { [Op.like]: `%${query.content}%` } });
+            }
         }
 
         // 查询文章总数

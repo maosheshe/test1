@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>文章详情 - 毛蛇蛇的开发之旅</title>
+    <title>文章详情 - 蛇蛇的开发之旅</title>
     <style>
         body {
             margin: 0;
@@ -457,7 +457,7 @@
 <body>
     <header class="header">
         <nav class="nav">
-            <a href="/" class="logo" title="毛蛇蛇的开发之旅">毛蛇蛇的开发之旅</a>
+            <a href="/" class="logo" title="蛇蛇的开发之旅">蛇蛇的开发之旅</a>
             <a href="javascript:void(0)" class="back-btn" onclick="goBack()">返回</a>
         </nav>
     </header>
@@ -633,7 +633,7 @@
 
                     const article = data.data.article;
                     
-                    document.title = `${article.title} - 毛蛇蛇的开发之旅`;
+                    document.title = `${article.title} - 蛇蛇的开发之旅`;
                     titleElement.textContent = article.title;
                     metaElement.textContent = `作者: ${article.user?.username || '未知'} | 发布时间: ${new Date(article.createdAt).toLocaleString()}`;
                     
