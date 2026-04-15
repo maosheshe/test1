@@ -62,6 +62,8 @@
         // 退出登录
         function logout() {
             localStorage.removeItem('token');
+            localStorage.removeItem('username');
+            localStorage.removeItem('tokenExpiry');
             window.location.href = '/login.html';
         }
 

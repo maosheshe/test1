@@ -21,6 +21,7 @@
 - 搜索功能支持标题和内容的模糊匹配
 - 文章列表显示作者和发布时间
 - 现代化的搜索框设计和交互体验
+- 独立的登录与注册页面，提升用户体验
 
 ### 代码展示功能
 - 支持多种编程语言的代码高亮
@@ -62,14 +63,18 @@
 │   │   ├── marked.min.js    # Markdown 解析器
 │   │   ├── highlight.min.js # 代码高亮
 │   │   └── github.min.css   # 代码高亮主题
+│   ├── index.html          # 博客主页
 │   ├── article.html        # 文章阅读页面
+│   ├── login.html          # 登录页面
+│   ├── register.html       # 注册页面
 │   └── admin/             # 管理界面
-│       ├── login.html     # 登录页面
-│       ├── register.html  # 注册页面
 │       ├── dashboard.html # 控制面板
 │       ├── articles.html  # 文章列表
-│       └── article-detail.html # 文章编辑页
+│       └── article-detail.html # 文章详情/编辑页
 ├── server.js        # 服务器入口文件
+├── models/          # Sequelize 数据模型
+├── migrations/      # 数据库迁移文件
+├── seeders/         # 数据库种子数据
 ├── .env            # 环境变量配置
 └── README.md       # 项目说明文档
 ```

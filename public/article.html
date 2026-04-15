@@ -248,10 +248,27 @@
         }
 
         .article-content table {
-            max-width: 100%;
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1rem 0;
             overflow-x: auto;
             display: block;
-            margin: 1rem 0;
+        }
+        .article-content th, 
+        .article-content td {
+            border: 1px solid #dfe2e5;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        .article-content th {
+            background-color: #f6f8fa;
+            font-weight: 600;
+        }
+        .article-content tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
+        .article-content tr:hover {
+            background-color: #f2f2f2;
         }
 
         .toc {

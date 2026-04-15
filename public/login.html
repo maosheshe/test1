@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>用户登录/注册</title>
+    <title>用户登录</title>
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -85,37 +85,13 @@
             </div>
             <button onclick="login()">登录</button>
             <div class="switch-form">
-                <a href="#" onclick="toggleForm()">没有账号？立即注册</a>
+                <a href="/register.html">没有账号？立即注册</a>
             </div>
             <div id="loginError" class="error-message"></div>
-        </div>
-
-        <div id="registerForm" style="display: none;">
-            <h2>注册</h2>
-            <div class="form-group">
-                <input type="text" id="registerUsername" placeholder="用户名">
-            </div>
-            <div class="form-group">
-                <input type="password" id="registerPassword" placeholder="密码">
-            </div>
-            <div class="form-group">
-                <input type="password" id="confirmPassword" placeholder="确认密码">
-            </div>
-            <button onclick="register()">注册</button>
-            <div class="switch-form">
-                <a href="#" onclick="toggleForm()">已有账号？立即登录</a>
-            </div>
-            <div id="registerError" class="error-message"></div>
         </div>
     </div>
 
     <script>
-        function toggleForm() {
-            const loginForm = document.getElementById('loginForm');
-            const registerForm = document.getElementById('registerForm');
-            loginForm.style.display = loginForm.style.display === 'none' ? 'block' : 'none';
-            registerForm.style.display = registerForm.style.display === 'none' ? 'block' : 'none';
-        }
 
         // 检查是否已登录
         function checkLoginStatus() {
@@ -175,40 +151,6 @@
             }
         }
 
-        async function register() {
-            const username = document.getElementById('registerUsername').value;
-            const password = document.getElementById('registerPassword').value;
-            const confirmPassword = document.getElementById('confirmPassword').value;
-            const errorElement = document.getElementById('registerError');
-
-            if (password !== confirmPassword) {
-                errorElement.style.display = 'block';
-                errorElement.textContent = '两次输入的密码不一致';
-                return;
-            }
-
-            try {
-                const response = await fetch('/api/register', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify({ username, password }),
-                });
-
-                const data = await response.json();
-                if (response.ok) {
-                    alert('注册成功！');
-                    toggleForm();
-                } else {
-                    errorElement.style.display = 'block';
-                    errorElement.textContent = data.message || '注册失败';
-                }
-            } catch (error) {
-                errorElement.style.display = 'block';
-                errorElement.textContent = '服务器错误，请稍后重试';
-            }
-        }
 
         // 页面加载时检查登录状态
         window.onload = checkLoginStatus;

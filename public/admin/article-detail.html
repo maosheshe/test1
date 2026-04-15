@@ -123,6 +123,26 @@
             border-color: #28a745;
         }
 
+        .article-body table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 1rem 0;
+            overflow-x: auto;
+            display: block;
+        }
+        .article-body th, 
+        .article-body td {
+            border: 1px solid #dfe2e5;
+            padding: 8px 12px;
+            text-align: left;
+        }
+        .article-body th {
+            background-color: #f6f8fa;
+            font-weight: 600;
+        }
+        .article-body tr:nth-child(even) {
+            background-color: #f8f9fa;
+        }
         /* 语言标签样式 */
         .code-lang {
             position: absolute;
@@ -170,11 +190,23 @@
             highlight: function(code, lang) {
                 return code;
             },
-            langPrefix: 'language-'
+            langPrefix: 'language-',
+            gfm: true,
+            breaks: true
         });
-
+        
         // 扩展 marked.js 的渲染器
         const renderer = new marked.Renderer();
+        renderer.table = function(header, body) {
+            return '<table class="markdown-table">\n'
+                + '<thead>\n'
+                + header
+                + '</thead>\n'
+                + '<tbody>\n'
+                + body
+                + '</tbody>\n'
+                + '</table>\n';
+        };
         renderer.code = function(code, language) {
             const escapedCode = code.replace(/</g, '&lt;').replace(/>/g, '&gt;');
             return `
@@ -214,21 +246,27 @@
         function checkAuth() {
             const token = localStorage.getItem('token');
             if (!token) {
-                window.location.href = 'login.html';
+                window.location.href = '/login.html';
                 return;
             }
             // 检查 token 是否过期
             try {
-                const tokenData = JSON.parse(atob(token.split('.')[1]));
+                const base64Url = token.split('.')[1];
+                const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                    return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                }).join(''));
+                const tokenData = JSON.parse(jsonPayload);
+                
                 if (tokenData.exp * 1000 < Date.now()) {
                     localStorage.removeItem('token');
-                    window.location.href = 'login.html';
+                    window.location.href = '/login.html';
                     return;
                 }
             } catch (error) {
                 console.error('Token 解析错误:', error);
                 localStorage.removeItem('token');
-                window.location.href = 'login.html';
+                window.location.href = '/login.html';
                 return;
             }
         }
@@ -288,18 +326,24 @@
 
                 // 检查 token 是否过期
                 try {
-                    const tokenData = JSON.parse(atob(token.split('.')[1]));
+                    const base64Url = token.split('.')[1];
+                    const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+                    const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+                        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+                    }).join(''));
+                    const tokenData = JSON.parse(jsonPayload);
+                    
                     if (tokenData.exp * 1000 < Date.now()) {
                         localStorage.removeItem('token');
                         alert('登录已过期，请重新登录');
-                        window.location.href = 'login.html';
+                        window.location.href = '/login.html';
                         return;
                     }
                 } catch (error) {
                     console.error('Token 解析错误:', error);
                     localStorage.removeItem('token');
                     alert('登录已过期，请重新登录');
-                    window.location.href = 'login.html';
+                    window.location.href = '/login.html';
                     return;
                 }
 
@@ -323,7 +367,7 @@
                     if (response.status === 401) {
                         errorMessage = '登录已过期，请重新登录';
                         localStorage.removeItem('token');
-                        window.location.href = 'login.html';
+                        window.location.href = '/login.html';
                     } else if (response.status === 404) {
                         errorMessage = '文章不存在或您没有权限修改';
                     } else if (response.status === 500) {

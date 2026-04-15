@@ -67,13 +67,14 @@ app.use(cors({
  */
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 时间窗口：15分钟
-    max: 100 // 最大请求次数
+    max: 1000, // 最大请求次数提高到1000
+    message: '请求过于频繁，请15分钟后再试'
 });
-app.use(limiter);
 
 // 配置基础中间件
 app.use(express.json({ limit: '10kb' })); // 解析JSON请求体，限制大小为10KB
 app.use(express.static('public')); // 提供静态文件服务
+app.use(limiter); // 将速率限制应用在静态文件之后，防止加载资源时被拦截
 
 /**
  * 根路由处理
